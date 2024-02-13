@@ -40,10 +40,6 @@ abstract class BaseEndpoint extends Mappable
         array $parameters = [],
         string $body = null
     ): mixed {
-        /*
-         * TODO deal with refreshing tokens (need callback to store new refresh token)
-         *   https://developer.blackbaud.com/skyapi/docs/in-depth-topics/api-request-throttling
-         */
         usleep(100000);
 
         $token = $this->api->getToken();

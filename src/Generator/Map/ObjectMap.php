@@ -87,21 +87,18 @@ class ObjectMap extends BaseMap
                 array_push($fields, $key);
                 $method = $property->type;
                 $type ??= (string) $this->map->$method($property, true);
-                // TODO handle enums
 
                 $classDoc->addItem(
-                    "@property $type" . // FIXME $type should be absolute
+                    "@property $type" .
                     ($property->nullable ? " | null" : "") .
                     " $$key " .
                     $property->description
                 );
             }
 
-            // TODO additionalProperties
             $classDoc->addItem("@api");
             $fileContents .=
               $classDoc->asString(0) .
-              // TODO the short name pf $this->baseType feels like a hack
               "class $name extends " .
               preg_replace("/^.*\\\\/", "", $this->baseType) .
               PHP_EOL .

@@ -63,7 +63,6 @@ abstract class BaseMap extends Loggable
     public function deletePreviousMapping(): void
     {
         $this->log("Deleting contents of $this->basePath", Loggable::WARNING);
-        // FIXME this should maybe (not) be recursive?
         foreach (scandir($this->basePath) as $file) {
             if (!is_dir("$this->basePath/$file")) {
                 unlink("$this->basePath/$file");

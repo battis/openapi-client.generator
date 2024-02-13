@@ -63,7 +63,6 @@ class Client
                 if (false === isset($_GET[self::CODE])) {
                     $authorizationUrl = $this->api->getAuthorizationUrl();
                     $_SESSION[self::OAuth2_STATE] = $this->api->getState();
-                    // TODO wipe existing token?
                     $this->cache->set(self::Request_URI, $_SERVER["REQUEST_URI"] ?? null);
                     header("Location: $authorizationUrl");
                     exit();
@@ -91,7 +90,6 @@ class Client
             $newToken = $this->api->getAccessToken(self::REFRESH_TOKEN, [
               self::REFRESH_TOKEN => $token->getRefreshToken(),
             ]);
-            // FIXME need to handle _not_ being able to refresh!
             $this->cache->set(self::Bb_TOKEN, $newToken);
             $token = $newToken;
         }
