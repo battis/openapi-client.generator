@@ -1,0 +1,29 @@
+{
+  "name": "battis/openapi-client-generator",
+  "description": "Generate a PHP client for a RESTful API from its OpenAPI description file",
+  "require": {
+    "battis/loggable": "dev-main",
+    "cebe/php-openapi": "^1.7",
+    "sspat/reserved-words": "^3.0",
+    "league/oauth2-client": "^2.7",
+    "psr/simple-cache": "^3.0",
+    "psr/log": "^3.0",
+    "symfony/filesystem": "^7.0",
+    "battis/data-utilities": "^1.2"
+  },
+  "license": "GPL-3.0",
+  "authors": [
+    {
+      "name": "Seth Battis",
+      "email": "seth@battis.net"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Battis\\OpenAPI\\": "src"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  }
+}
