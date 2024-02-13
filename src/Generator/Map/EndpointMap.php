@@ -8,22 +8,31 @@ use Battis\OpenAPI\Client\BaseEndpoint;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\PHPDoc;
-use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
-use cebe\openapi\spec\OpenApi;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Response;
-use Psr\Log\LoggerInterface;
 
 /**
  * @api
  */
 class EndpointMap extends BaseMap
 {
-    public function __construct(OpenApi $spec, string $basePath, string $baseNamespace, ?string $baseType = null, ?Sanitize $sanitize = null, ?TypeMap $typeMap = null, ?LoggerInterface $logger = null)
+    /**
+     * @param array{
+     *     spec: \cebe\openapi\spec\OpenApi,
+     *     basePath: string,
+     *     baseNamespace: string,
+     *     baseType?: string,
+     *     sanitize?: \Battis\OpenAPI\Generator\Sanitize,
+     *     typeMap?: \Battis\OpenAPI\Generator\TypeMap,
+     *     logger?: ?\Psr\Log\LoggerInterface
+     *   } $config
+     */
+    public function __construct(array $config)
     {
-        parent::__construct($spec, $basePath, $baseNamespace, $baseType ?? BaseEndpoint::class, $sanitize, $typeMap, $logger);
+        $config['baseType'] ??= BaseEndpoint::class;
+        parent::__construct($config);
         assert(is_a($this->baseType, BaseEndpoint::class, true), new ConfigurationException("\$baseType must be instance of " . BaseEndpoint::class));
     }
 

@@ -9,7 +9,6 @@ use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use cebe\openapi\spec\OpenApi;
-use Psr\Log\LoggerInterface;
 
 abstract class BaseMap extends Loggable
 {
@@ -21,31 +20,35 @@ abstract class BaseMap extends Loggable
     protected string $basePath;
     protected string $baseNamespace;
 
-    public function __construct(OpenApi $spec, string $basePath, string $baseNamespace, string $baseType, ?Sanitize $sanitize = null, ?TypeMap $typeMap = null, ?LoggerInterface $logger = null)
+    /**
+     * @param array{
+     *     spec: \cebe\openapi\spec\OpenApi,
+     *     basePath: string,
+     *     baseNamespace: string,
+     *     baseType: string,
+     *     sanitize?: \Battis\OpenAPI\Generator\Sanitize,
+     *     typeMap?: \Battis\OpenAPI\Generator\TypeMap,
+     *     logger?: ?\Psr\Log\LoggerInterface
+     *   } $config
+     */
+    public function __construct(array $config)
     {
-        parent::__construct($logger);
+        parent::__construct($config['logger'] ?? null);
 
-        $this->spec = $spec;
+        $this->spec = $config['spec'];
 
-        $this->baseType = $baseType;
+        $this->baseType = $config['baseType'];
         assert(is_a($this->baseType, Mappable::class, true), new ConfigurationException("\$baseType must be instance of " . Mappable::class));
 
-        $this->basePath = Path::canonicalize($basePath, getcwd());
-        assert(!empty($this->basePath), new ConfigurationException('base path nust be specified'));
+        $this->basePath = Path::canonicalize($config['basePath'], getcwd());
         @mkdir($this->basePath, 0744, true);
 
-        assert(!empty($baseNamespace), new ConfigurationException("base namespace must be specified"));
-        $this->baseNamespace = trim($baseNamespace, "\\");
+        assert(!empty($config['baseNamespace']), new ConfigurationException("base namespace must be specified"));
+        $this->baseNamespace = trim($config['baseNamespace'], "\\");
 
-        $this->sanitize = $sanitize ?? new Sanitize();
+        $this->sanitize = $config['sanitize'] ?? new Sanitize();
 
-        $this->map = $typeMap ?? new TypeMap($this->logger);
-
-        $this->log([
-            'basePath' => $this->basePath,
-            'baseNamespace' => $this->baseNamespace,
-            'baseType' => $this->baseType,
-        ], Loggable::DEBUG);
+        $this->map = $config['typeMap'] ?? new TypeMap($this->logger);
     }
 
     /**
