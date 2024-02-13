@@ -3,14 +3,20 @@
 namespace Battis\OpenAPI\Generator;
 
 use Battis\DataUtilities\Path;
+use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use cebe\openapi\Reader;
 use cebe\openapi\spec\OpenApi;
-use Battis\OpenAPI\Exceptions\ConfigurationException;
 
 use function Safe\yaml_parse;
 
+/**
+ * @api
+ */
 class Specification
 {
+    /**
+     * @api prevent instantiation
+     */
     private function __construct() {}
 
     /**
@@ -25,7 +31,7 @@ class Specification
      *
      * @return \cebe\openapi\spec\OpenApi The OpenApi object instance.
      *
-     * @throws \Battis\OpenAPI\Exceptions\ConfigurationException if the $specification cannot be identified
+     * @throws \Battis\OpenAPI\Generator\Exceptions\ConfigurationException if the $specification cannot be identified
      */
     public static function from(
         string $specification

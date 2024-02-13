@@ -1,0 +1,13 @@
+{
+  "actions" : {
+    "clean" : {
+      "enabled" : true,
+      "script" : ".\/tools\/psalm"
+    },
+    "run" : {
+      "enabled" : true,
+      "script" : ".\/tools\/psalm"
+    }
+  },
+  "openLogOnRun" : "start"
+}

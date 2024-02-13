@@ -5,7 +5,7 @@ namespace Battis\OpenAPI\Generator\Map;
 use Battis\DataUtilities\Path;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\Mappable;
-use Battis\OpenAPI\Exceptions\ConfigurationException;
+use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use cebe\openapi\spec\OpenApi;
@@ -48,8 +48,18 @@ abstract class BaseMap extends Loggable
         ], Loggable::DEBUG);
     }
 
+    /**
+     * @return TypeMap
+     *
+     * @api
+     */
     abstract public function generate(): TypeMap;
 
+    /**
+     * @return void
+     *
+     * @api
+     */
     public function deletePreviousMapping(): void
     {
         $this->log("Deleting contents of $this->basePath", Loggable::WARNING);
@@ -67,8 +77,12 @@ abstract class BaseMap extends Loggable
         return Path::join($this->basePath, "$path.php");
     }
 
-    protected function parseNamespace(string $path = null): string
+    protected function parseType(string $path = null): string
     {
-        return $this->baseNamespace . ($path !== null ? "\\" . preg_replace("/\//", "\\", $path) : "");
+        $parts = [$this->baseNamespace];
+        if ($path !== null) {
+            array_push($parts, str_replace("/", "\\", $path));
+        }
+        return Path::join("\\", $parts);
     }
 }

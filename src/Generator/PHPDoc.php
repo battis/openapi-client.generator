@@ -2,9 +2,10 @@
 
 namespace Battis\OpenAPI\Generator;
 
-use Battis\OpenAPI\Exceptions\OpenAPIException;
+use Battis\Loggable\Loggable;
+use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 
-class PHPDoc
+class PHPDoc extends Loggable
 {
     /** @var string[] $items */
     private array $items = [];
@@ -36,17 +37,24 @@ class PHPDoc
             }
             $directiveIndent = $directive !== false ? "  " : "";
             $wrapped = false;
+            $longLastLine = false;
             while (strlen($item) > $width) {
                 $w = $width - strlen("$indent * " . ($wrapped ? $directiveIndent : ""));
                 $regex = "/^( \* " . ($wrapped ? $directiveIndent : "") . "((.{1,$w})|(\S{" . $w . ",})))(\s(.*))?$/m";
                 preg_match($regex, $item, $match);
-                assert(array_key_exists(1, $match), new OpenAPIException(var_export(['item' => $item, 'regex' => $regex,'match' => $match], true)));
+                assert(array_key_exists(1, $match), new GeneratorException(var_export(['item' => $item, 'regex' => $regex,'match' => $match], true)));
                 $phpdoc .= $match[1] . PHP_EOL;
-                $item =  "$indent * " . $directiveIndent . $match[6];
+                if (array_key_exists(6, $match)) {
+                    $item =  "$indent * " . $directiveIndent . $match[6];
+                } else {
+                    $item = "";
+                    $longLastLine = true;
+                }
                 $wrapped = true;
             }
-            $phpdoc .=  $item . PHP_EOL;
-            $prevDirective = $directive;
+            if (!$longLastLine) {
+                $phpdoc .=  $item . PHP_EOL;
+            }            $prevDirective = $directive;
         }
         $phpdoc .= "$indent */" . PHP_EOL;
         return $phpdoc;

@@ -2,6 +2,7 @@
 
 namespace Battis\OpenAPI\Client;
 
+use Battis\OpenAPI\Client\Exceptions\ClientException;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Token\AccessTokenInterface;
@@ -29,14 +30,14 @@ class Client
     public const AUTHORIZATION_CODE = "authorization_code";
     public const REFRESH_TOKEN = "refresh_token";
 
-    private AbstractProvider $api = null;
-    private ?AccessTokenInterface $token = null;
+    private AbstractProvider $api;
     private CacheInterface $cache;
 
-    public function __construct(AbstractProvider $api)
+    public function __construct(AbstractProvider $api, CacheInterface $cache)
     {
-        $this->api = $api;
         session_start();
+        $this->api = $api;
+        $this->cache = $cache;
     }
 
     public function isReady(): bool
@@ -51,6 +52,7 @@ class Client
      */
     public function getToken($interactive = true)
     {
+        /** @var array $cachedToken */
         $cachedToken = $this->cache->get(self::Bb_TOKEN, true);
         $token = $cachedToken ? new AccessToken($cachedToken) : null;
 
@@ -92,8 +94,6 @@ class Client
             // FIXME need to handle _not_ being able to refresh!
             $this->cache->set(self::Bb_TOKEN, $newToken);
             $token = $newToken;
-        } else {
-            $this->token = $token;
         }
 
         return $token;
@@ -102,6 +102,7 @@ class Client
     public function handleRedirect(): void
     {
         self::getToken();
+        /** @var string $uri */
         $uri = $this->cache->get(self::Request_URI) ?? "/";
         header("Location: $uri");
         exit();

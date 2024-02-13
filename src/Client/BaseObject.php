@@ -1,10 +1,13 @@
 <?php
 
-namespace Battis\OpenAPI\Client\Object;
+namespace Battis\OpenAPI\Client;
 
-use Battis\OpenAPI\Client\Mappable;
+use Battis\OpenAPI\Client\Exceptions\ClientException;
 use JsonSerializable;
 
+/**
+ * @api
+ */
 abstract class BaseObject extends Mappable implements JsonSerializable
 {
     /** @var string[] $fields */
@@ -32,7 +35,7 @@ abstract class BaseObject extends Mappable implements JsonSerializable
     /**
      * @param string $name
      * @return mixed
-     * @throws \Battis\OpenAPI\Client\Object\ObjectException if unknown property accessed
+     * @throws \Battis\OpenAPI\Client\Exceptions\ClientException if unknown property accessed
      * @api
      */
     public function __get(string $name): mixed
@@ -44,7 +47,7 @@ abstract class BaseObject extends Mappable implements JsonSerializable
                 return null;
             }
         }
-        throw new ObjectException(
+        throw new ClientException(
             "Unknown property `$name`",
         );
     }

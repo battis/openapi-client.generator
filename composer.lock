@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "battis/data-utilities",
-            "version": "v1.2.1",
+            "version": "v1.2.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/battis/data-utilities.git",
-                "reference": "c687f4096dff5f5e3862bbea03ca254515759e99"
+                "reference": "a39863903447966da1d46f33216acfce5fba022d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/battis/data-utilities/zipball/c687f4096dff5f5e3862bbea03ca254515759e99",
-                "reference": "c687f4096dff5f5e3862bbea03ca254515759e99",
+                "url": "https://api.github.com/repos/battis/data-utilities/zipball/a39863903447966da1d46f33216acfce5fba022d",
+                "reference": "a39863903447966da1d46f33216acfce5fba022d",
                 "shasum": ""
             },
             "require": {
@@ -45,9 +45,9 @@
             "description": "A handful of useful helper functions to process data",
             "support": {
                 "issues": "https://github.com/battis/data-utilities/issues",
-                "source": "https://github.com/battis/data-utilities/tree/v1.2.1"
+                "source": "https://github.com/battis/data-utilities/tree/v1.2.2"
             },
-            "time": "2024-02-12T16:11:26+00:00"
+            "time": "2024-02-13T13:10:49+00:00"
         },
         {
             "name": "battis/hydratable",
@@ -95,12 +95,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/battis/loggable.git",
-                "reference": "52d2caa59bbea4d5d89a69ec4bc6012f71d1fc74"
+                "reference": "cf0877b764859c8b5717473d18f891b5cc21929f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/battis/loggable/zipball/52d2caa59bbea4d5d89a69ec4bc6012f71d1fc74",
-                "reference": "52d2caa59bbea4d5d89a69ec4bc6012f71d1fc74",
+                "url": "https://api.github.com/repos/battis/loggable/zipball/cf0877b764859c8b5717473d18f891b5cc21929f",
+                "reference": "cf0877b764859c8b5717473d18f891b5cc21929f",
                 "shasum": ""
             },
             "require": {
@@ -128,7 +128,7 @@
                 "issues": "https://github.com/battis/loggable/issues",
                 "source": "https://github.com/battis/loggable/tree/main"
             },
-            "time": "2024-02-12T23:21:01+00:00"
+            "time": "2024-02-13T01:53:03+00:00"
         },
         {
             "name": "cebe/php-openapi",

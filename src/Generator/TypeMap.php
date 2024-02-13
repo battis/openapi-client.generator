@@ -3,21 +3,24 @@
 namespace Battis\OpenAPI\Generator;
 
 use Battis\Loggable\Loggable;
-use Battis\OpenAPI\Exceptions\SchemaException;
+use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 use Psr\Log\LoggerInterface;
 
 class TypeMap extends Loggable
 {
-    /** @var array<string, string> $chemas */
-    private array $schemas = [];
+    /** @var array<string, string> */
+    private array $schemaToType = [];
 
-    /** @var array<string, string> $urls */
-    private array $urls = [];
+    /** @var array<string, string> */
+    private array $urlToPath = [];
 
-    /** @var array<string, string> $paths */
-    private array $paths = [];
+    /** @var array<string, string> */
+    private array $pathToType = [];
+
+    /** @var array<string, string> */
+    private array $urlToType = [];
 
     public function __construct(LoggerInterface $logger = null)
     {
@@ -28,23 +31,25 @@ class TypeMap extends Loggable
      * @param array{ref?: string, type?: string, path?: string, url?: string} $registration
      *
      * @return void
+     &
+     * @psalm-suppress RiskyTruthyFalsyComparison
      */
     public function register(array $registration): void
     {
-        if (!empty($registration['ref']) && !empty($registration('type'))) {
+        if (!empty($registration['ref']) && !empty($registration['type'])) {
             $this->registerSchema($registration['ref'], $registration['type']);
         }
         if (!empty($registration['url']) && !empty($registration['path'])) {
             $this->registerUrl($registration['url'], $registration['path']);
         }
         if (!empty($registration['type']) && !empty($registration['path'])) {
-            $this->registerClass($registration['type'], $registration['path']);
+            $this->registerType($registration['type'], $registration['path']);
         }
     }
 
     public function registerSchema(string $ref, string $type): void
     {
-        $this->schemas[$ref] = $type;
+        $this->schemaToType[$ref] = $type;
 
         $this->log([
           "ref" => $ref,
@@ -57,23 +62,16 @@ class TypeMap extends Loggable
         bool $fqn = true,
         bool $absolute = false
     ): ?string {
-        if (array_key_exists($ref, $this->schemas)) {
-            $obj = $this->schemas[$ref];
-            if ($fqn) {
-                if ($absolute) {
-                    $obj = "\\" . $obj;
-                }
-            } else {
-                $obj = preg_replace("/^.+\\\\([^\\\\]+)$/", "$1", $obj, -1, $count);
-            }
-            return $obj;
+        $type = $this->schemaToType[$ref] ?? null;
+        if ($type !== null) {
+            $type = $this->parseType($type, $fqn, $absolute);
         }
-        return null;
+        return $type;
     }
 
     public function registerUrl(string $url, string $filePath): void
     {
-        $this->urls[$url] = $filePath;
+        $this->urlToPath[$url] = $filePath;
         $this->log([
           "url" => $url,
           "path" => $filePath,
@@ -83,12 +81,12 @@ class TypeMap extends Loggable
 
     public function getFilepathFromUrl(string $url): ?string
     {
-        return $this->urls[$url] ?? null;
+        return $this->urlToPath[$url] ?? null;
     }
 
-    public function registerClass(string $type, string $filePath): void
+    public function registerType(string $type, string $filePath): void
     {
-        $this->paths[$type] = $filePath;
+        $this->pathToType[$type] = $filePath;
         $this->log([
           "type" => $type,
           "path" => $filePath,
@@ -98,29 +96,99 @@ class TypeMap extends Loggable
 
     public function getFilePathFromType(string $type): ?string
     {
-        return $this->paths[$type] ?? null;
+        return $this->pathToType[$type] ?? null;
     }
 
+    public function registerUrlGet(string $url, string $type): void
+    {
+        $this->urlToType[$url] = $type;
+        $this->log([
+          "url" => $url,
+          "type" => $type,
+        ], Loggable::DEBUG, false);
+
+    }
+
+    public function getTypeFromUrl(string $url, bool $fqn = true, bool $absolute = false): ?string
+    {
+        $type = $this->urlToType[$url] ?? null;
+        if ($type !== null) {
+            $type = $this->parseType($type, $fqn, $absolute);
+        }
+        return $type;
+    }
+
+    public function getFilePathFromUrlGet(string $url): ?string
+    {
+        $type = $this->getTypeFromUrl($url);
+        if ($type !== null) {
+            return $this->getFilePathFromType($type);
+        }
+        return $type;
+    }
+
+    private function parseType(string $type, bool $fqn = true, bool $absolute = false): string
+    {
+        if ($fqn) {
+            if ($absolute) {
+                $type = "\\" . $type;
+            }
+        } else {
+            $type = preg_replace("/^.+\\\\([^\\\\]+)$/", "$1", $type);
+        }
+        return $type;
+    }
+
+    /**
+     * @return string
+     *
+     * @api
+     */
     public function boolean(): string
     {
         return "bool";
     }
 
+    /**
+     * @return string
+     *
+     * @api
+     */
     public function integer(): string
     {
         return "int";
     }
 
+    /**
+     * @param Schema $elt
+     *
+     * @return string
+     *
+     * @api
+     */
     public function number(Schema $elt): string
     {
         return empty($elt->format) ? "scalar" /* FIXME WAG */ : $elt->format;
     }
 
+    /**
+     * @return string
+     *
+     * @api
+     */
     public function string(): string
     {
         return "string";
     }
 
+    /**
+     * @param Schema $elt
+     * @param bool $absolute
+     *
+     * @return string
+     *
+     * @api
+     */
     public function array(Schema $elt, bool $absolute = false): string
     {
         assert(
@@ -135,6 +203,13 @@ class TypeMap extends Loggable
         return (string) $this->$method($elt->items) . "[]";
     }
 
+    /**
+     * @param Schema $elt
+     *
+     * @return string
+     *
+     * @api
+     */
     public function object(Schema $elt): string
     {
         assert(
@@ -144,8 +219,17 @@ class TypeMap extends Loggable
         return $elt->additionalProperties->type . "[]";
     }
 
+    /**
+     * @param string $ref
+     * @param array $arguments
+     *
+     * @return string
+     *
+     * @api
+     */
     public function __call(string $ref, array $arguments)
     {
+        /** @var bool $absolute */
         $absolute = $arguments[1] ?? false;
         $this->log([
           "ref" => $ref,
@@ -153,7 +237,7 @@ class TypeMap extends Loggable
         ], Loggable::DEBUG);
 
         $class = $this->getTypeFromSchema($ref, true, $absolute);
-        assert($class, new SchemaException("$ref not defined"));
+        assert($class !== null, new SchemaException("$ref not defined"));
         return $class;
     }
 }

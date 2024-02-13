@@ -3,9 +3,9 @@
 namespace Battis\OpenAPI\Generator\Map;
 
 use Battis\Loggable\Loggable;
-use Battis\OpenAPI\Client\Object\BaseObject;
-use Battis\OpenAPI\Exceptions\ConfigurationException;
-use Battis\OpenAPI\Exceptions\SchemaException;
+use Battis\OpenAPI\Client\BaseObject;
+use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
+use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\PHPDoc;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
@@ -14,6 +14,9 @@ use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 use Psr\Log\LoggerInterface;
 
+/**
+ * @api
+ */
 class ObjectMap extends BaseMap
 {
     public function __construct(OpenApi $spec, string $basePath, string $baseNamespace, ?string $baseType = null, ?Sanitize $sanitize = null, ?TypeMap $typeMap = null, ?LoggerInterface $logger = null)
@@ -32,7 +35,7 @@ class ObjectMap extends BaseMap
         foreach (array_keys($this->spec->components->schemas) as $name) {
             $ref = "#/components/schemas/$name";
             $name = $this->sanitize->clean((string) $name);
-            $this->map->registerSchema($ref, $this->parseNamespace($name));
+            $this->map->registerSchema($ref, $this->parseType($name));
             $this->log($ref);
         }
 
@@ -49,12 +52,12 @@ class ObjectMap extends BaseMap
             /** @var Schema $schema (because we just resolved it)*/
 
             $name = $this->sanitize->clean((string) $_name);
-            $namespace = $this->parseNamespace();
+            $namespace = $this->parseType();
             $filePath = $this->parseFilePath($name);
-            $this->map->registerClass("$namespace\\$name", $filePath);
+            $this->map->registerType("$namespace\\$name", $filePath);
             $this->log("$namespace\\$name");
 
-            $classDoc = new PHPDoc();
+            $classDoc = new PHPDoc($this->logger);
             if (!empty($schema->description)) {
                 $classDoc->addItem($schema->description);
             }
@@ -113,7 +116,7 @@ class ObjectMap extends BaseMap
               "}" .
               PHP_EOL;
 
-            @mkdir(dirname($filePath, true));
+            @mkdir(dirname($filePath), 0744, true);
             file_put_contents($filePath, $fileContents);
         }
         return $this->map;
