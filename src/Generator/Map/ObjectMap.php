@@ -87,15 +87,17 @@ class ObjectMap extends BaseMap
                 array_push($fields, $key);
                 $method = $property->type;
                 $type ??= (string) $this->map->$method($property, true);
+                // TODO handle enums
 
                 $classDoc->addItem(
-                    "@property $type" .
+                    "@property $type" . // FIXME $type should be absolute
                     ($property->nullable ? " | null" : "") .
                     " $$key " .
                     $property->description
                 );
             }
 
+            // TODO additionalProperties
             $classDoc->addItem("@api");
             $fileContents .=
               $classDoc->asString(0) .
