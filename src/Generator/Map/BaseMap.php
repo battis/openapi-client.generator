@@ -3,6 +3,7 @@
 namespace Battis\OpenAPI\Generator\Map;
 
 use Battis\DataUtilities\Path;
+use Battis\DataUtilities\Filesystem;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\Mappable;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
@@ -66,12 +67,8 @@ abstract class BaseMap extends Loggable
     public function deletePreviousMapping(): void
     {
         $this->log("Deleting contents of $this->basePath", Loggable::WARNING);
-        // FIXME this should maybe (not) be recursive?
-        foreach (scandir($this->basePath) as $file) {
-            if (!is_dir("$this->basePath/$file")) {
-                unlink("$this->basePath/$file");
-                $this->log("Deleted " . $this->basePath . "/$file", Loggable::WARNING);
-            }
+        foreach(Filesystem::safeScandir($this->basePath) as $item) {
+            FileSystem::delete(Path::join($this->basePath, $item), true);
         }
     }
 

@@ -50,11 +50,6 @@ class TypeMap extends Loggable
     public function registerSchema(string $ref, string $type): void
     {
         $this->schemaToType[$ref] = $type;
-
-        $this->log([
-          "ref" => $ref,
-          "type" => $type,
-        ], Loggable::DEBUG, false);
     }
 
     public function getTypeFromSchema(
@@ -72,11 +67,6 @@ class TypeMap extends Loggable
     public function registerUrl(string $url, string $filePath): void
     {
         $this->urlToPath[$url] = $filePath;
-        $this->log([
-          "url" => $url,
-          "path" => $filePath,
-        ], Loggable::DEBUG, false);
-
     }
 
     public function getFilepathFromUrl(string $url): ?string
@@ -87,11 +77,6 @@ class TypeMap extends Loggable
     public function registerType(string $type, string $filePath): void
     {
         $this->pathToType[$type] = $filePath;
-        $this->log([
-          "type" => $type,
-          "path" => $filePath,
-        ], Loggable::DEBUG, false);
-
     }
 
     public function getFilePathFromType(string $type): ?string
@@ -102,11 +87,6 @@ class TypeMap extends Loggable
     public function registerUrlGet(string $url, string $type): void
     {
         $this->urlToType[$url] = $type;
-        $this->log([
-          "url" => $url,
-          "type" => $type,
-        ], Loggable::DEBUG, false);
-
     }
 
     public function getTypeFromUrl(string $url, bool $fqn = true, bool $absolute = false): ?string
@@ -231,10 +211,6 @@ class TypeMap extends Loggable
     {
         /** @var bool $absolute */
         $absolute = $arguments[1] ?? false;
-        $this->log([
-          "ref" => $ref,
-          "arguments" => $arguments,
-        ], Loggable::DEBUG);
 
         $class = $this->getTypeFromSchema($ref, true, $absolute);
         assert($class !== null, new SchemaException("$ref not defined"));

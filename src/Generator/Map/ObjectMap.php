@@ -50,15 +50,9 @@ class ObjectMap extends BaseMap
 
         foreach ($this->spec->components->schemas as $_name => $schema) {
             if ($schema instanceof Reference) {
-                $ref = $schema->getReference();
                 $schema = $schema->resolve();
-                $this->log([
-                    "loc" => __FILE__ . "#" . __FUNCTION__ . "()@" . __LINE__,
-                    "ref" => $ref,
-                    "type" => is_object($schema) ? get_class($schema) : gettype($schema),
-                ], Loggable::DEBUG);
+                /** @var Schema $schema (because we just resolved it)*/
             }
-            /** @var Schema $schema (because we just resolved it)*/
 
             $name = $this->sanitize->clean((string) $_name);
             $namespace = $this->parseType();
@@ -88,7 +82,6 @@ class ObjectMap extends BaseMap
                 if ($property instanceof Reference) {
                     $ref = $property->getReference();
                     $property = $property->resolve();
-                    $this->log(['ref' => $ref, 'class' => is_object($property) ? get_class($property) : gettype($property)], Loggable::DEBUG);
                     $type = $this->map->getTypeFromSchema($ref, true, true);
                 }
                 /** @var Schema $property (because we just resolved it)*/

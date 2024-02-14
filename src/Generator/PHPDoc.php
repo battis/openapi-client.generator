@@ -40,7 +40,7 @@ class PHPDoc extends Loggable
             $longLastLine = false;
             while (strlen($item) > $width) {
                 $w = $width - strlen("$indent * " . ($wrapped ? $directiveIndent : ""));
-                $regex = "/^( \* " . ($wrapped ? $directiveIndent : "") . "((.{1,$w})|(\S{" . $w . ",})))(\s(.*))?$/m";
+                $regex = "/^(" . $indent . " \* " . ($wrapped ? $directiveIndent : "") . "((.{1,$w})|(\S{" . $w . ",})))(\s(.*))?$/m";
                 preg_match($regex, $item, $match);
                 assert(array_key_exists(1, $match), new GeneratorException(var_export(['item' => $item, 'regex' => $regex,'match' => $match], true)));
                 $phpdoc .= $match[1] . PHP_EOL;
