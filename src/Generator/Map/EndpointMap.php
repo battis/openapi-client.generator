@@ -89,6 +89,32 @@ class EndpointMap extends BaseMap
                         $op->responses !== null,
                         new SchemaException("$operation $url has no responses")
                     );
+                    $methodDoc->addItem($op->description);
+
+                    // parameters
+                    $methodParameters = [];
+                    $urlParameters = [];
+                    $queryParameters = [];
+                    foreach($op->parameters as $parameter) {
+                        $this->log($parameter->getSerializableData(), Loggable::DEBUG);
+                        if ($parameter->schema instanceof Reference) {
+                            $ref = $parameter->schema->getReference();
+                            $param = $this->map->getTypeFromSchema($ref);
+                        } else {
+                            $method = $parameter->schema->type;
+                            $param = $this->map->$method($parameter);
+                        }
+                        $declaration =  (($parameter->required ?? false) ? "" : "?") . "$param $" . $parameter->name ;
+                        $methodDoc->addItem("@param $declaration " . $parameter->description);
+                        if ($parameter->in === 'path') {
+                            $urlParameters["{" . $parameter->name . "}"] = "$" . $parameter->name;
+                        } elseif ($parameter->in === 'query') {
+                            $queryParameters['"' . $parameter->name . '"'] = "$" . $parameter->name;
+                        }
+                        array_push($methodParameters, $declaration);
+                    }
+
+                    // return type
                     $responses = $op->responses;
                     /** @var ?\cebe\openapi\spec\Response $resp */
                     $resp = is_array($responses)
@@ -129,16 +155,20 @@ class EndpointMap extends BaseMap
                         array_push($args, "\"$pattern\" => $param");
                     }
                     $args = "[" . join(", ", $args) . "]";
+
+                    $query = [];
+                    foreach($queryParameters as $key => $arg) {
+                        array_push($query, "$key => $arg");
+                    }
+                    $query = "[" . join(", ", $query) . "]";
                     array_push(
                         $methods,
                         $methodDoc->asString(1) .
                         "    public function $operation(" .
-                        (empty($urlParameters)
-                          ? ""
-                          : join(
-                              ", ",
-                              array_map(fn($n) => "string $n", array_values($urlParameters))
-                          )) .
+                         join(
+                             ", ",
+                             $methodParameters
+                         ) .
                         ")" .
                         PHP_EOL .
                         "    {" .
@@ -146,7 +176,8 @@ class EndpointMap extends BaseMap
                         "        return " .
                         ($instantiate ? "new $type(" : "") .
                         "\$this->send(\"$operation\"" .
-                        (empty($urlParameters) ? "" : ", $args") .
+                        (empty($urlParameters) ? ", []" : ", $args") .
+                        (empty($queryParameters) ? ", []" : ", $query") .
                         ")" .
                         ($instantiate ? ")" : "") .
                         ";" .
