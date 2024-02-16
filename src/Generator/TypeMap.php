@@ -59,7 +59,7 @@ class TypeMap extends Loggable
     ): ?string {
         $type = $this->schemaToType[$ref] ?? null;
         if ($type !== null) {
-            $type = $this->parseType($type, $fqn, $absolute);
+            $type = self::parseType($type, $fqn, $absolute);
         }
         return $type;
     }
@@ -93,7 +93,7 @@ class TypeMap extends Loggable
     {
         $type = $this->urlToType[$url] ?? null;
         if ($type !== null) {
-            $type = $this->parseType($type, $fqn, $absolute);
+            $type = self::parseType($type, $fqn, $absolute);
         }
         return $type;
     }
@@ -107,7 +107,7 @@ class TypeMap extends Loggable
         return $type;
     }
 
-    private function parseType(string $type, bool $fqn = true, bool $absolute = false): string
+    public static function parseType(string $type, bool $fqn = true, bool $absolute = false): string
     {
         if ($fqn) {
             if ($absolute) {

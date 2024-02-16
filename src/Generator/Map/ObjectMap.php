@@ -4,7 +4,6 @@ namespace Battis\OpenAPI\Generator\Map;
 
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Client\BaseObject;
-use Battis\OpenAPI\Generator\CodeComponent\ClassObject;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\TypeMap;
@@ -20,7 +19,7 @@ class ObjectMap extends BaseMap
      * @var ClassObject[] $objects
      */
     private $objects = [];
-    
+
     /**
      * @param array{
      *     spec: \cebe\openapi\spec\OpenApi,
@@ -58,15 +57,18 @@ class ObjectMap extends BaseMap
                 $schema = $schema->resolve();
                 /** @var Schema $schema (because we just resolved it)*/
             }
-            $this->objects[$name] = ClassObject::fromSchema($name, $schema, $this);
+            $this->objects[$name] = ObjectClass::fromSchema($name, $schema, $this);
         }
         return $this->map;
     }
-    
-    public function writeFiles() {
-        foreach($this->objects as $name => $class) {
-            file_put_contents(Path::join($this->basePath, "$class->name.php"), $class);
-        } 
+
+    public function writeFiles()
+    {
+        foreach($this->objects as $class) {
+            $filePath = Path::join($this->basePath, $class->getName() . ".php");
+            file_put_contents($filePath, $class);
+            $this->log($filePath);
+        }
         shell_exec(Path::join(getcwd(), '/vendor/bin/php-cs-fixer') . " fix " . $this->basePath);
     }
 }

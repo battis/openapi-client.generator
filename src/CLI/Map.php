@@ -94,5 +94,6 @@ class Map extends CLI
             $endpointMap->deletePreviousMapping();
         }
         $endpointMap->generate();
+        $endpointMap->writeFiles();
     }
 }

@@ -81,7 +81,7 @@ abstract class BaseMap extends Loggable
     {
         $parts = [$this->baseNamespace];
         if ($path !== null) {
-            $parts[ ]= str_replace("/", "\\", $path);
+            $parts[ ] = str_replace("/", "\\", $path);
         }
         return Path::join("\\", $parts);
     }

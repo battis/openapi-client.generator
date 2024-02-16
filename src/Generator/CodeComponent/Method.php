@@ -2,53 +2,62 @@
 
 namespace Battis\OpenAPI\Generator\CodeComponent;
 
-class Method extends BaseComponent{
-    
-    public string $access = "public";
-    
-    public string $description;
-    
-    public string $name;
+use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
+use Battis\OpenAPI\Generator\TypeMap;
 
-    /** @var array<string, array{
-     *     type: string,
-     *     description: string
-     *  }> $parameters
-     *  ```
-     *  [
-     *     'name' => [
-     *       'type` => 'int',
-     *       'description' => 'a value'
-     *     ]
-     *  ]
-     *  ```
+class Method extends BaseComponent
+{
+    protected string $access = "public";
+
+    protected string $description;
+
+    protected string $name;
+
+    /**
+     * @var Parameter[] $parameters;
      */
     protected array $parameters;
 
-    /** @var string[] $body */
-    public array $body;
-    
-    public string $returnType;
-        
-    public function setParameter(string $name, string $type, string $description = "") {
-        $this->parameters[$name] = ['type' => $type, 'description' => $description];
-    }
-        
-    public function __toString()
+    /** @var string $body */
+    protected string $body;
+
+    protected string $returnType;
+
+    public function addParameter(Parameter $parameter): void
     {
-        $params =[];
+        $this->parameters[] = $parameter;
+    }
+
+    /**
+     * @param Parameter[] $parameters
+     */
+    public static function public(string $name, string $returnType, string $body, ?string $description =  null, array $parameters = []): Method
+    {
+        $method = new Method();
+        $method->name = $name;
+        $method->access = 'public';
+        $method->returnType = $returnType;
+        $method->body = $body;
+        $method->description = $description;
+        $method->parameters = $parameters;
+        return $method;
+    }
+
+    public function asImplementation(): string
+    {
+        $params = [];
         $doc = new PHPDoc($this->logger);
         $doc->addItem($this->description);
-        foreach($this->parameters as $name => $meta) {
-            $params[] = $meta['type'] . " \$$name";
-            $doc->addItem(trim("@param " . $meta['type'] . " \$$name " . $meta['description']));
+        foreach($this->parameters as $param) {
+            $params[] = $param->asDeclaration();
+            $doc->addItem($param->asPHPDocParam());
         }
-        $doc->addItem("@return " . $this->returnType);
+        $doc->addItem("@return " . TypeMap::parseType($this->returnType, true, true));
         $doc->addItem("@api");
-        return $doc->asString(1) . PHP_EOL .
-            "$this->access function $this->name(" . join(", ", $params) . ")" . PHP_EOL.
-            "{".PHP_EOL.
-            $this->body.PHP_EOL;
-            "}".PHP_EOL;
-    }    
+        return $doc->asString(1) .
+            "$this->access function $this->name(" . join(", ", $params) . ")" . PHP_EOL .
+            "{" . PHP_EOL .
+            $this->body . PHP_EOL .
+        "}" . PHP_EOL;
+    }
 }

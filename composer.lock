@@ -95,12 +95,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/battis/loggable.git",
-                "reference": "cf0877b764859c8b5717473d18f891b5cc21929f"
+                "reference": "39f1b5e6a543a763e08991c43eb0909d002e3893"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/battis/loggable/zipball/cf0877b764859c8b5717473d18f891b5cc21929f",
-                "reference": "cf0877b764859c8b5717473d18f891b5cc21929f",
+                "url": "https://api.github.com/repos/battis/loggable/zipball/39f1b5e6a543a763e08991c43eb0909d002e3893",
+                "reference": "39f1b5e6a543a763e08991c43eb0909d002e3893",
                 "shasum": ""
             },
             "require": {
@@ -128,7 +128,7 @@
                 "issues": "https://github.com/battis/loggable/issues",
                 "source": "https://github.com/battis/loggable/tree/main"
             },
-            "time": "2024-02-13T01:53:03+00:00"
+            "time": "2024-02-16T17:24:10+00:00"
         },
         {
             "name": "cebe/php-openapi",

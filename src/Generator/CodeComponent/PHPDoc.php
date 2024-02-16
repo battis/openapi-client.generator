@@ -24,7 +24,7 @@ class PHPDoc extends BaseComponent
         for($i = 0; $i < $level; $i++) {
             $indent .= "    ";
         }
-        $phpdoc = "$indent/**" . PHP_EOL;
+        $phpdoc = $indent . "/**" . PHP_EOL;
         foreach($this->items as $item) {
             $directive = false;
             if (preg_match("/(@\w+)/i", $item, $match)) {
@@ -37,8 +37,8 @@ class PHPDoc extends BaseComponent
             $directiveIndent = $directive !== false ? "  " : "";
             $wrapped = false;
             $longLastLine = false;
+            $w = $width - strlen("$indent * " . ($wrapped ? $directiveIndent : ""));
             while (strlen($item) > $width) {
-                $w = $width - strlen("$indent * " . ($wrapped ? $directiveIndent : ""));
                 $regex = "/^(" . $indent . " \* " . ($wrapped ? $directiveIndent : "") . "((.{1,$w})|(\S{" . $w . ",})))(\s(.*))?$/m";
                 preg_match($regex, $item, $match);
                 assert(array_key_exists(1, $match), new GeneratorException(var_export(['item' => $item, 'regex' => $regex,'match' => $match], true)));
