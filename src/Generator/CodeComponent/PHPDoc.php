@@ -1,18 +1,17 @@
 <?php
 
-namespace Battis\OpenAPI\Generator;
+namespace Battis\OpenAPI\Generator\CodeComponent;
 
-use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 
-class PHPDoc extends Loggable
+class PHPDoc extends BaseComponent
 {
     /** @var string[] $items */
     private array $items = [];
 
     public function addItem(string $item): void
     {
-        array_push($this->items, $item);
+        $this->items[] = $item;
     }
 
     public function asString(int $level = 1, int $width = 78): string

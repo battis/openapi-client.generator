@@ -13,13 +13,13 @@ use cebe\openapi\spec\OpenApi;
 
 abstract class BaseMap extends Loggable
 {
-    protected OpenApi $spec;
-    protected Sanitize $sanitize;
-    protected TypeMap $map;
+    public OpenApi $spec;
+    public Sanitize $sanitize;
+    public TypeMap $map;
 
-    protected string $baseType;
-    protected string $basePath;
-    protected string $baseNamespace;
+    public string $baseType;
+    public string $basePath;
+    public string $baseNamespace;
 
     /**
      * @param array{
@@ -72,16 +72,16 @@ abstract class BaseMap extends Loggable
         }
     }
 
-    protected function parseFilePath(string $path): string
+    public function parseFilePath(string $path): string
     {
         return Path::join($this->basePath, "$path.php");
     }
 
-    protected function parseType(string $path = null): string
+    public function parseType(string $path = null): string
     {
         $parts = [$this->baseNamespace];
         if ($path !== null) {
-            array_push($parts, str_replace("/", "\\", $path));
+            $parts[ ]= str_replace("/", "\\", $path);
         }
         return Path::join("\\", $parts);
     }

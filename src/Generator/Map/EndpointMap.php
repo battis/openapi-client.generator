@@ -5,14 +5,13 @@ namespace Battis\OpenAPI\Generator\Map;
 use Battis\DataUtilities\Path;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\BaseEndpoint;
+use Battis\OpenAPI\Generator\CodeComponent\PHPDoc;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
-use Battis\OpenAPI\Generator\PHPDoc;
 use Battis\OpenAPI\Generator\TypeMap;
 use cebe\openapi\spec\Operation;
 use cebe\openapi\spec\Reference;
-use cebe\openapi\spec\Response;
 use cebe\openapi\spec\Schema;
 
 /**
@@ -91,29 +90,8 @@ class EndpointMap extends BaseMap
                     );
                     $methodDoc->addItem($op->description);
 
-                    // parameters
-                    $methodParameters = [];
-                    $urlParameters = [];
-                    $queryParameters = [];
-                    foreach($op->parameters as $parameter) {
-                        $this->log($parameter->getSerializableData(), Loggable::DEBUG);
-                        if ($parameter->schema instanceof Reference) {
-                            $ref = $parameter->schema->getReference();
-                            $param = $this->map->getTypeFromSchema($ref);
-                        } else {
-                            $method = $parameter->schema->type;
-                            $param = $this->map->$method($parameter);
-                        }
-                        $declaration =  (($parameter->required ?? false) ? "" : "?") . "$param $" . $parameter->name ;
-                        $methodDoc->addItem("@param $declaration " . $parameter->description);
-                        if ($parameter->in === 'path') {
-                            $urlParameters["{" . $parameter->name . "}"] = "$" . $parameter->name;
-                        } elseif ($parameter->in === 'query') {
-                            $queryParameters['"' . $parameter->name . '"'] = "$" . $parameter->name;
-                        }
-                        array_push($methodParameters, $declaration);
-                    }
-
+                    $parameters = $this->methodParameters($op, $methodDoc);
+                    
                     // return type
                     $responses = $op->responses;
                     /** @var ?\cebe\openapi\spec\Response $resp */
@@ -134,7 +112,7 @@ class EndpointMap extends BaseMap
                             $type = $this->map->getTypeFromSchema($ref, true, true);
                             $methodDoc->addItem("@return $type");
                             $type = $this->map->getTypeFromSchema($ref);
-                            array_push($uses, $type);
+                            $uses[] = $type;
                             $type = $this->map->getTypeFromSchema($ref, false);
                             if ($operation === "get" && $type !== null) {
                                 $this->map->registerUrlGet($url, $type);
@@ -152,22 +130,21 @@ class EndpointMap extends BaseMap
                     assert(is_string($type), new GeneratorException('type undefined'));
                     $args = [];
                     foreach ($urlParameters as $pattern => $param) {
-                        array_push($args, "\"$pattern\" => $param");
+                        $args[] = "\"$pattern\" => $param";
                     }
                     $args = "[" . join(", ", $args) . "]";
 
                     $query = [];
-                    foreach($queryParameters as $key => $arg) {
-                        array_push($query, "$key => $arg");
+                    foreach($parameters['query'] as $key => $arg) {
+                        $query[] = "$key => $arg";
                     }
                     $query = "[" . join(", ", $query) . "]";
-                    array_push(
-                        $methods,
+                    $methods[] =
                         $methodDoc->asString(1) .
                         "    public function $operation(" .
                          join(
                              ", ",
-                             $methodParameters
+                             $parameters['method']
                          ) .
                         ")" .
                         PHP_EOL .
@@ -176,15 +153,15 @@ class EndpointMap extends BaseMap
                         "        return " .
                         ($instantiate ? "new $type(" : "") .
                         "\$this->send(\"$operation\"" .
-                        (empty($urlParameters) ? ", []" : ", $args") .
-                        (empty($queryParameters) ? ", []" : ", $query") .
+                        (empty($parameters['path']) ? ", []" : ", $args") .
+                        (empty($parameters['query']) ? ", []" : ", $query") .
                         ")" .
                         ($instantiate ? ")" : "") .
                         ";" .
                         PHP_EOL .
                         "    }" .
                         PHP_EOL
-                    );
+                    ;
                 }
             }
 
@@ -218,6 +195,41 @@ class EndpointMap extends BaseMap
 
         return $this->map;
     }
+    
+    /**
+     * Parse parameter information from an operation
+     *
+     * @param \cebe\openapi\spec\Operation $operation
+     * @param \Battis\OpenAPI\Generator\PHPDoc $doc
+     *
+     * @return array{method: string[], path: array<string, string>, query: array<string>string}
+     */
+    protected function methodParameters(Operation $operation, PHPDoc $doc): array {
+        $parameters = [
+            'method' => [],
+            'path' => [],
+            'query' => []
+        ];
+        foreach($operation->parameters as $parameter) {
+            $this->log($parameter->getSerializableData(), Loggable::DEBUG);
+            if ($parameter->schema instanceof Reference) {
+                $ref = $parameter->schema->getReference();
+                $parameterType = $this->map->getTypeFromSchema($ref);
+            } else {
+                $method = $parameter->schema->type;
+                $parameterType = $this->map->$method($parameter);
+            }
+            $declaration =  (($parameter->required ?? false) ? "" : "?") . "$parameterType $" . $parameter->name ;
+            $doc->addItem("@param $declaration " . $parameter->description);
+            if ($parameter->in === 'path') {
+                $parameters['path']["{" . $parameter->name . "}"] = "$" . $parameter->name;
+            } elseif ($parameter->in === 'query') {
+                $parameters['query']['"' . $parameter->name . '"'] = "$" . $parameter->name;
+            }
+            $parameters['method'][] = $declaration;
+        }
+        return $parameters;
+    }
 
     /**
      * @param string $path
@@ -233,7 +245,7 @@ class EndpointMap extends BaseMap
             if (preg_match("/\{([^}]+)\}/", $part, $match)) {
                 $urlParameters[$part] = "$" . $match[1];
             } else {
-                array_push($namespaceParts, $part);
+                $namespaceParts[] = $part;
             }
         }
         return (substr($path, 0, 1) === "/" ? "/" : "") .
