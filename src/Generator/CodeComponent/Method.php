@@ -3,7 +3,7 @@
 namespace Battis\OpenAPI\Generator\CodeComponent;
 
 use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
-use Battis\OpenAPI\Generator\TypeMap;
+use Battis\OpenAPI\Generator\CodeComponent\Method\ReturnType;
 
 class Method extends BaseComponent
 {
@@ -24,8 +24,8 @@ class Method extends BaseComponent
     /** @var string $body */
     protected string $body;
 
-    protected string $returnType;
-
+    protected ReturnType $returnType;
+    
     public function getName(): string
     {
         return $this->name;
@@ -39,7 +39,7 @@ class Method extends BaseComponent
     /**
      * @param Parameter[] $parameters
      */
-    public static function public(string $name, string $returnType, string $body, ?string $description =  null, array $parameters = []): Method
+    public static function public(string $name, ReturnType $returnType, string $body, ?string $description =  null, array $parameters = []): Method
     {
         $method = new Method();
         $method->name = $name;
@@ -61,7 +61,7 @@ class Method extends BaseComponent
             $doc->addItem($param->asPHPDocParam());
         }
         // TODO order parameters with required first
-        $doc->addItem("@return " . TypeMap::parseType($this->returnType, true, true));
+        $doc->addItem($this->returnType->asPHPDocReturn());
         $doc->addItem("@api");
         return $doc->asString(1) .
             "$this->access function $this->name(" . join(", ", $params) . ")" . PHP_EOL .
@@ -76,9 +76,11 @@ class Method extends BaseComponent
         $doc->addItem($this->description);
         $optional = true;
         $parameters = [];
+        $params = "";
         if (!empty($this->parameters)) {
             $parametersDoc = [];
             $requestBody = null;
+            $params = [];
             foreach($this->parameters as $parameter) {
                 if ($parameter->getName() === 'requestBody') {
                     $requestBody = $parameter;
@@ -88,7 +90,6 @@ class Method extends BaseComponent
                     $optional = $optional && $parameter->isOptional();
                 }
             }
-            $params = [];
             if (!empty($parameters)) {
                 $doc->addItem("@param array{" . join(", ", $parameters) . "} \$params An associative array" . PHP_EOL . "    - " . join(PHP_EOL . "    - ", $parametersDoc));
                 $params[] = "array \$params" . ($optional ? " = []" : "");
@@ -100,7 +101,7 @@ class Method extends BaseComponent
             }
             $params = empty($params) ? "" : join(", ", $params);
         }
-        $doc->addItem("@return " . TypeMap::parseType($this->returnType, true, true));
+        $doc->addItem($this->returnType->asPHPDocReturn());
         $doc->addItem('@api');
         $body = str_replace(["\$params[\"this\"]", "\$params[\"requestBody\"]"], ["\$this","\$requestBody"], preg_replace("/\\$([a-z0-9_]+)/i", "\$params[\"$1\"]", $this->body));
         return $doc->asString(1) .

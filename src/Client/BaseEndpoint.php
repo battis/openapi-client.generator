@@ -37,8 +37,8 @@ abstract class BaseEndpoint extends Mappable
      */
     protected function send(
         string $method,
-        array $urlParameters = [],
-        array $parameters = [],
+        array $pathParameters = [],
+        array $queryParameters = [],
         mixed $body = null
     ): mixed {
         /*
@@ -49,24 +49,18 @@ abstract class BaseEndpoint extends Mappable
 
         $token = $this->api->getToken();
         assert($token !== null, new ClientException('No valid token available, must interactively authenticate'));
-        $options = [
-            'headers' => [
-                'Authentication' => "Bearer $token",
-            ],
-        ];
-        if ($body !== null) {
-            if (is_object($body)) {
-                $body = json_encode($body);
-            }
-            $options['body'] = $body;
+
+        if ($body instanceof JsonSerializable) {
+            $body = json_encode($body) ?: null;
         }
 
         $request = new Request(
             $method,
-            str_replace(array_keys($urlParameters), array_values($urlParameters), static::$url) . "?" . http_build_query($parameters),
-            $options
+            str_replace(array_keys($pathParameters), array_values($pathParameters), static::$url) . "?" . http_build_query($queryParameters),
+            ['Authentication' => "Bearer $token"],
+            $body
         );
-        return $this->deserializeResponse(
+        return $this->decodeResponse(
             $this->http
             ->send($request)
             ->getBody()
@@ -74,7 +68,7 @@ abstract class BaseEndpoint extends Mappable
         );
     }
 
-    protected function deserializeResponse(string $response): mixed
+    protected function decodeResponse(string $response): mixed
     {
         return json_decode($response, true);
     }

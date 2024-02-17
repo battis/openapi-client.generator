@@ -110,7 +110,7 @@ class TypeMap extends Loggable
     public static function parseType(string $type, bool $fqn = true, bool $absolute = false): string
     {
         if ($fqn) {
-            if ($absolute) {
+            if ($absolute && !in_array($type, ['void', 'null','bool','int','float','string','array','object','callable','resource'])) {
                 $type = "\\" . $type;
             }
         } else {

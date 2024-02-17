@@ -6,6 +6,7 @@ use Battis\DataUtilities\Text;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\CodeComponent\Method;
 use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
+use Battis\OpenAPI\Generator\CodeComponent\Method\ReturnType;
 use Battis\OpenAPI\Generator\CodeComponent\PHPClass;
 use Battis\OpenAPI\Generator\CodeComponent\Property;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
@@ -109,6 +110,7 @@ class EndpointClass extends PHPClass
 
                 $requestBody = $op->requestBody;
                 if ($requestBody !== null) {
+                    $docType = null;
                     $schema = $requestBody->content[$map->expectedContentType()]->schema;
                     $type = null;
                     if ($schema instanceof Reference) {
@@ -116,9 +118,13 @@ class EndpointClass extends PHPClass
                         $class->addUses($type);
                     } else { /** @var Schema $schema */
                         $method = $schema->type;
-                        $type = $map->map->$method($schema, true);
+                        $type = $schema->type;
+                        $docType = $map->map->$method($schema, true);
                     }
                     $requestBody = Parameter::from('requestBody', $type, $requestBody->description);
+                    if ($docType !== null) {
+                        $requestBody->setDocType($docType);
+                    }
                 }
 
                 // return type
@@ -179,7 +185,7 @@ class EndpointClass extends PHPClass
                     $params[] = $requestBody;
                 }
 
-                $class->addMethod(Method::public($operation . $operationSuffix, $type, $body, $op->description, $params));
+                $class->addMethod(Method::public($operation . $operationSuffix, ReturnType::from($type, $resp->description), $body, $op->description, $params));
             }
         }
         return $class;
