@@ -6,6 +6,7 @@ use Battis\OpenAPI\Client\Client as APIClient;
 use Battis\OpenAPI\Client\Exceptions\ClientException;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Psr7\Request;
+use JsonSerializable;
 
 /**
  * @api
@@ -30,7 +31,7 @@ abstract class BaseEndpoint extends Mappable
      * @param string $method
      * @param array<string,string> $urlParameters
      * @param array<string, string> $parameters
-     * @param string $body
+     * @param string|JsonSerializable|null $body
      *
      * @return mixed  description
      */
@@ -38,7 +39,7 @@ abstract class BaseEndpoint extends Mappable
         string $method,
         array $urlParameters = [],
         array $parameters = [],
-        string $body = null
+        mixed $body = null
     ): mixed {
         /*
          * TODO deal with refreshing tokens (need callback to store new refresh token)
@@ -54,6 +55,9 @@ abstract class BaseEndpoint extends Mappable
             ],
         ];
         if ($body !== null) {
+            if (is_object($body)) {
+                $body = json_encode($body);
+            }
             $options['body'] = $body;
         }
 

@@ -75,21 +75,36 @@ class Method extends BaseComponent
         $doc = new PHPDoc();
         $doc->addItem($this->description);
         $optional = true;
+        $parameters = [];
         if (!empty($this->parameters)) {
-            $parameters = [];
             $parametersDoc = [];
+            $requestBody = null;
             foreach($this->parameters as $parameter) {
-                $parameters[] = $parameter->getName() . ($parameter->isOptional() ? "?" : "") . ": " . $parameter->getType();
-                $parametersDoc[] = $parameter->getName() . ": " . ($parameter->getDescription() ?? $parameter->getType());
-                $optional = $optional && $parameter->isOptional();
+                if ($parameter->getName() === 'requestBody') {
+                    $requestBody = $parameter;
+                } else {
+                    $parameters[] = $parameter->getName() . ($parameter->isOptional() ? "?" : "") . ": " . $parameter->getType();
+                    $parametersDoc[] = $parameter->getName() . ": " . ($parameter->getDescription() ?? $parameter->getType());
+                    $optional = $optional && $parameter->isOptional();
+                }
             }
-            $doc->addItem("@param array{" . join(", ", $parameters) . "} \$params An associative array" . PHP_EOL . "    - " . join(PHP_EOL . "    - ", $parametersDoc));
+            $params = [];
+            if (!empty($parameters)) {
+                $doc->addItem("@param array{" . join(", ", $parameters) . "} \$params An associative array" . PHP_EOL . "    - " . join(PHP_EOL . "    - ", $parametersDoc));
+                $params[] = "array \$params" . ($optional ? " = []" : "");
+            }
+            if ($requestBody !== null) {
+                /** @var Parameter $requestBody */
+                $doc->addItem($requestBody->asPHPDocParam());
+                $params[] = $requestBody->asDeclaration();
+            }
+            $params = empty($params) ? "" : join(", ", $params);
         }
         $doc->addItem("@return " . TypeMap::parseType($this->returnType, true, true));
         $doc->addItem('@api');
-        $body = str_replace("\$params[\"this\"]", "\$this", preg_replace("/\\$([a-z0-9_]+)/i", "\$params[\"$1\"]", $this->body));
+        $body = str_replace(["\$params[\"this\"]", "\$params[\"requestBody\"]"], ["\$this","\$requestBody"], preg_replace("/\\$([a-z0-9_]+)/i", "\$params[\"$1\"]", $this->body));
         return $doc->asString(1) .
-            "$this->access function $this->name(" . (empty($this->parameters) ? "" : "array \$params" . ($optional ? " = []" : "")) . ")" . PHP_EOL .
+            "$this->access function $this->name($params)" . PHP_EOL .
             "{" . PHP_EOL .
             $body . PHP_EOL .
         "}" . PHP_EOL;

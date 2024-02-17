@@ -3,6 +3,7 @@
 namespace Battis\OpenAPI\Generator\CodeComponent\Method;
 
 use Battis\OpenAPI\Generator\CodeComponent\BaseComponent;
+use Battis\OpenAPI\Generator\TypeMap;
 
 class Parameter extends BaseComponent
 {
@@ -58,6 +59,6 @@ class Parameter extends BaseComponent
 
     public function asDeclaration(): string
     {
-        return ($this->optional ? "?" : "") . "$this->type \$$this->name" . ($this->optional ? " = null" : "");
+        return ($this->optional ? "?" : "") . TypeMap::parseType($this->type, false) . " \$$this->name" . ($this->optional ? " = null" : "");
     }
 }

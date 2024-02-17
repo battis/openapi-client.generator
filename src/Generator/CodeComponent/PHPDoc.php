@@ -87,7 +87,7 @@ class PHPDoc extends BaseComponent
                     }
                     $wrapped = true;
                 }
-                    $phpdoc .=  $item . PHP_EOL;
+                $phpdoc .=  $item . PHP_EOL;
                 $prevDirective = $directive;
             }
         }

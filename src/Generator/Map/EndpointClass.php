@@ -99,12 +99,27 @@ class EndpointClass extends PHPClass
 
                 $op = $pathItem->$operation;
                 assert(is_a($op, Operation::class), new GeneratorException());
+                /** @var Operation $op */
                 assert(
                     $op->responses !== null,
                     new SchemaException("$operation $url has no responses")
                 );
 
                 $parameters = self::methodParameters($map, $op);
+
+                $requestBody = $op->requestBody;
+                if ($requestBody !== null) {
+                    $schema = $requestBody->content[$map->expectedContentType()]->schema;
+                    $type = null;
+                    if ($schema instanceof Reference) {
+                        $type = $map->map->getTypeFromSchema($schema->getReference());
+                        $class->addUses($type);
+                    } else { /** @var Schema $schema */
+                        $method = $schema->type;
+                        $type = $map->map->$method($schema, true);
+                    }
+                    $requestBody = Parameter::from('requestBody', $type, $requestBody->description);
+                }
 
                 // return type
                 $responses = $op->responses;
@@ -144,7 +159,7 @@ class EndpointClass extends PHPClass
                 $body = "return " . self::instantiate(
                     $instantiate,
                     $type,
-                    "\$this->send(\"$operation\", $pathArg, $queryArg)"
+                    "\$this->send(\"$operation\", $pathArg, $queryArg" . ($requestBody !== null ? ", $" . $requestBody->getName() : "") . ")"
                 ) .
                 ";";
 
@@ -157,7 +172,14 @@ class EndpointClass extends PHPClass
                         }
                     }
                 }
-                $class->addMethod(Method::public($operation . $operationSuffix, $type, $body, $op->description, array_merge($parameters['path'], $parameters['query'])));
+
+                $params = array_merge($parameters['path'], $parameters['query']);
+                if ($requestBody !== null) {
+                    assert(!in_array($requestBody->getName(), array_map(fn(Parameter $p) => $p->getName(), $params)), new GeneratorException('requestBody already exists as path or query parameter'));
+                    $params[] = $requestBody;
+                }
+
+                $class->addMethod(Method::public($operation . $operationSuffix, $type, $body, $op->description, $params));
             }
         }
         return $class;
