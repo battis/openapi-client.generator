@@ -2,6 +2,7 @@
 
 namespace Battis\OpenAPI\Generator\CodeComponent;
 
+use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 
 class PHPDoc extends BaseComponent
@@ -39,10 +40,16 @@ class PHPDoc extends BaseComponent
             $longLastLine = false;
             $w = $width - strlen("$indent * " . ($wrapped ? $directiveIndent : ""));
             while (strlen($item) > $width) {
-                $regex = "/^(" . $indent . " \* " . ($wrapped ? $directiveIndent : "") . "((.{1,$w})|(\S{" . $w . ",})))(\s(.*))?$/m";
+                $regex = "/^(" . $indent . " \* " . ($wrapped ? $directiveIndent : "") . "(($directive \S{" . ($w - strlen($directive)) . ",})|(.{1,$w})))(\s(.*))?$/m";
                 preg_match($regex, $item, $match);
-                assert(array_key_exists(1, $match), new GeneratorException(var_export(['item' => $item, 'regex' => $regex,'match' => $match], true)));
-                $phpdoc .= $match[1] . PHP_EOL;
+                // TODO tidy up this logic
+                if (array_key_exists(1, $match)) {
+                    $phpdoc .= $match[1] . PHP_EOL;
+                } else {
+                    $phpdoc .= $item;
+                    $item = "";
+                    $longLastLine = true;
+                }
                 if (array_key_exists(6, $match)) {
                     $item =  "$indent * " . $directiveIndent . $match[6];
                 } else {
