@@ -1,0 +1,8 @@
+{
+  "actions" : {
+    "run" : {
+      "enabled" : true,
+      "script" : "vendor\/bin\/php-cs-fixer fix"
+    }
+  }
+}

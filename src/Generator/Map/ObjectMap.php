@@ -5,6 +5,7 @@ namespace Battis\OpenAPI\Generator\Map;
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Client\BaseObject;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
+use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\TypeMap;
 use cebe\openapi\spec\Reference;
@@ -66,6 +67,8 @@ class ObjectMap extends BaseMap
     {
         foreach($this->objects as $class) {
             $filePath = Path::join($this->basePath, $class->getName() . ".php");
+            @mkdir(dirname($filePath), 0744, true);
+            assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $class);
             $this->log($filePath);
         }

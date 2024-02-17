@@ -2,6 +2,7 @@
 
 namespace Battis\OpenAPI\Generator\Map;
 
+use Battis\DataUtilities\Text;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\CodeComponent\Method;
 use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
@@ -17,7 +18,60 @@ use cebe\openapi\spec\Schema;
 
 class EndpointClass extends PHPClass
 {
-    public string $normalizedPath;
+    private string $normalizedPath;
+    private string $url;
+
+    public function getNormalizedPath(): string
+    {
+        return $this->normalizedPath;
+    }
+
+    public function mergeWith(EndpointClass $other)
+    {
+        // merge $url properties, taking longest one
+        $thisUrlProps = array_filter($this->properties, fn($prop) => $prop->getName() === 'url');
+        assert(count($thisUrlProps) === 1, new GeneratorException("multiple URL properties"));
+        $thisUrlProp = $thisUrlProps[0];
+
+        $otherUrlProps = array_filter($other->properties, fn($prop) => $prop->getName() === 'url');
+        assert(count($otherUrlProps) === 1, new GeneratorException("multiple URL properties"));
+        $otherUrlProp = $otherUrlProps[0];
+
+        $base = $thisUrlProp->getDefaultValue();
+        $base = substr($base, 1, strlen($base) - 2);
+        $extension = $otherUrlProp->getDefaultValue();
+        $extension = substr($extension, 1, strlen($extension) - 2);
+        if ($base !== $extension) {
+            if (strlen($base) > strlen($extension)) {
+                $temp = $base;
+                $base = $extension;
+                $extension = $temp;
+            }
+            $this->log("Merging $base and $extension into one endpoint", Loggable::WARNING);
+
+            $this->removeProperty($thisUrlProp);
+            $other->removeProperty($otherUrlProp);
+            $this->addProperty(Property::protectedStatic('url', 'string', null, "\"$extension\""));
+        } else {
+            $other->removeProperty($otherUrlProp);
+        }
+
+        // testing to make sure there are no other duplicate properties
+        $thisProperties = array_map(fn(Property $p) => $p->getName(), $this->properties);
+        $otherProperties = array_map(fn(Property $p) => $p->getName(), $other->properties);
+        $duplicateProperties = array_intersect($thisProperties, $otherProperties);
+        assert(count($duplicateProperties) === 0, new GeneratorException("Duplicate properties in merge: " . var_export($duplicateProperties, true)));
+
+
+        $thisMethods = array_map(fn($m) => $m->getName(), $this->methods);
+        $otherMethods = array_map(fn($m) => $m->getName(), $other->methods);
+        $duplicateMethods = array_intersect($thisMethods, $otherMethods);
+        assert(count($duplicateMethods) === 0, new GeneratorException("Duplicate methods in merge: " . var_export($duplicateMethods, true)));
+
+        $this->uses = array_merge($this->uses, $other->uses);
+        $this->properties = array_merge($this->properties, $other->properties);
+        $this->methods = array_merge($this->methods, $other->methods);
+    }
 
     public static function fromPathItem(string $path, PathItem $pathItem, EndpointMap $map, string $url): PHPClass
     {
@@ -25,6 +79,7 @@ class EndpointClass extends PHPClass
         $class->description = $pathItem->description;
         $class->baseType = $map->baseType;
         $class->addProperty(Property::protectedStatic('url', 'string', null, "\"$url\""));
+        $class->url = $url;
         $class->normalizedPath = static::normalizePath($path);
         $class->name = $map->sanitize->clean(basename($class->normalizedPath));
         $dir = dirname($class->normalizedPath);
@@ -33,7 +88,9 @@ class EndpointClass extends PHPClass
         }
         $class->namespace = $map->parseType($dir);
 
-        $uses = [BaseEndpoint::class];
+        preg_match_all("/\{([^}]+)\}\//", $class->url, $match, PREG_PATTERN_ORDER);
+        $operationSuffix = Text::snake_case_to_PascalCase((!empty($match[1]) ? "by_" : "") . join("_and_", array_map(fn($p) => str_replace("_id", "", $p), $match[1])));
+
         foreach ($map->supportedOperations() as $operation) {
             if ($pathItem->$operation) {
                 $map->log(strtoupper($operation) . " " . $url);
@@ -91,7 +148,16 @@ class EndpointClass extends PHPClass
                 ) .
                 ";";
 
-                $class->addMethod(Method::public($operation, $type, $body, $op->description, array_merge($parameters['path'], $parameters['query'])));
+                if ($operation === 'get') {
+                    if (count($parameters['path']) === 0) {
+                        if (count($parameters['query']) === 0) {
+                            $operation .= 'All';
+                        } else {
+                            $operation = 'filterBy';
+                        }
+                    }
+                }
+                $class->addMethod(Method::public($operation . $operationSuffix, $type, $body, $op->description, array_merge($parameters['path'], $parameters['query'])));
             }
         }
         return $class;
@@ -100,7 +166,7 @@ class EndpointClass extends PHPClass
     protected static function instantiate(bool $instantiate, string $type, string $arg): string
     {
         if ($instantiate) {
-            return "new " . TypeMap::parseType($type,false) . "(" . $arg . ")";
+            return "new " . TypeMap::parseType($type, false) . "(" . $arg . ")";
         } else {
             return $arg;
         }
@@ -121,7 +187,6 @@ class EndpointClass extends PHPClass
             'query' => [],
         ];
         foreach($operation->parameters as $parameter) {
-            $map->log($parameter->getSerializableData(), Loggable::DEBUG);
             if ($parameter->schema instanceof Reference) {
                 $ref = $parameter->schema->getReference();
                 $parameterType = $map->map->getTypeFromSchema($ref);
@@ -147,7 +212,7 @@ class EndpointClass extends PHPClass
     {
         $parts = explode("/", $path);
         $namespaceParts = [];
-        foreach ($parts as $part) {
+        foreach($parts as $part) {
             if (preg_match("/\{([^}]+)\}/", $part, $match)) {
 
             } else {

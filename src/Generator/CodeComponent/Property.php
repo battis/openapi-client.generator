@@ -2,8 +2,6 @@
 
 namespace Battis\OpenAPI\Generator\CodeComponent;
 
-use Battis\OpenAPI\Generator\Exceptions\CodeComponentException;
-
 class Property extends BaseComponent
 {
     private string $access = 'public';
@@ -21,6 +19,21 @@ class Property extends BaseComponent
     private ?string $defaultValue = null;
 
     private bool $documentationOnly = false;
+
+    public function equals(Property $other): bool
+    {
+        return $this->name === $other->name && $this->type === $other->type;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getDefaultValue(): ?string
+    {
+        return $this->defaultValue;
+    }
 
     public function setDocType(string $docType)
     {

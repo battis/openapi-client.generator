@@ -23,6 +23,11 @@ class Method extends BaseComponent
 
     protected string $returnType;
 
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
     public function addParameter(Parameter $parameter): void
     {
         $this->parameters[] = $parameter;
@@ -52,6 +57,7 @@ class Method extends BaseComponent
             $params[] = $param->asDeclaration();
             $doc->addItem($param->asPHPDocParam());
         }
+        // TODO order parameters with required first
         $doc->addItem("@return " . TypeMap::parseType($this->returnType, true, true));
         $doc->addItem("@api");
         return $doc->asString(1) .

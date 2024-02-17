@@ -5,6 +5,7 @@ namespace Battis\OpenAPI\Generator\Map;
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Client\BaseEndpoint;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
+use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\TypeMap;
 
 /**
@@ -13,7 +14,7 @@ use Battis\OpenAPI\Generator\TypeMap;
 class EndpointMap extends BaseMap
 {
     /**
-     * @var EndpointClass[] $objects
+     * @var array<string, EndpointClass> $objects
      */
     protected array $objects = [];
 
@@ -57,9 +58,14 @@ class EndpointMap extends BaseMap
     {
         foreach ($this->spec->paths as $path => $pathItem) {
             $path = (string) $path;
-            $this->log($path);
             $url = Path::join($this->spec->servers[0]->url, $path);
-            $this->objects[] = EndpointClass::fromPathItem($path, $pathItem, $this, $url);
+            $this->log($url);
+            $class = EndpointClass::fromPathItem($path, $pathItem, $this, $url);
+            if (array_key_exists($class->getType(), $this->objects)) {
+                $this->objects[$class->getType()]->mergeWith($class);
+            } else {
+                $this->objects[$class->getType()] = $class;
+            }
         }
 
         return $this->map;
@@ -68,8 +74,9 @@ class EndpointMap extends BaseMap
     public function writeFiles(): void
     {
         foreach($this->objects as $object) {
-            $filePath = Path::join($this->basePath, $object->normalizedPath . ".php");
+            $filePath = Path::join($this->basePath, dirname($object->getNormalizedPath()), $object->getName() . ".php");
             @mkdir(dirname($filePath), 0744, true);
+            assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $object);
             $this->log($filePath);
         }

@@ -29,6 +29,6 @@ class Sanitize
 
     public function rename(string $name): string
     {
-        return "_$name";
+        return $name . "_";
     }
 }

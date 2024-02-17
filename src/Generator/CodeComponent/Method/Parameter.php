@@ -13,8 +13,13 @@ class Parameter extends BaseComponent
     private ?string $docType = null;
 
     private ?string $description;
-    
+
     private bool $optional = false;
+
+    public function isOptional(): bool
+    {
+        return $this->optional;
+    }
 
     public function setDocType(string $docType)
     {
@@ -43,6 +48,6 @@ class Parameter extends BaseComponent
 
     public function asDeclaration(): string
     {
-        return ($this->optional ? "?" : "") . "$this->type \$$this->name". ($this->optional ? " = null" : "");
+        return ($this->optional ? "?" : "") . "$this->type \$$this->name" . ($this->optional ? " = null" : "");
     }
 }
