@@ -49,7 +49,7 @@ class ObjectMap extends BaseMap
         foreach (array_keys($this->spec->components->schemas) as $name) {
             $ref = "#/components/schemas/$name";
             $name = $this->sanitize->clean((string) $name);
-            $this->map->registerSchema($ref, $this->parseType($name));
+            $this->map->registerSchema($ref, str_replace('.', "\\", $this->parseType($name)));
             $this->log($ref);
         }
 
@@ -66,7 +66,7 @@ class ObjectMap extends BaseMap
     public function writeFiles()
     {
         foreach($this->objects as $class) {
-            $filePath = Path::join($this->basePath, $class->getName() . ".php");
+            $filePath = Path::join($this->basePath, $class->getPath() . ".php");
             @mkdir(dirname($filePath), 0744, true);
             assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $class);

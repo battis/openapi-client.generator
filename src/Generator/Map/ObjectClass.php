@@ -9,11 +9,22 @@ use cebe\openapi\spec\Schema;
 
 class ObjectClass extends PHPClass
 {
-    public static function fromSchema(string $name, Schema $schema, ObjectMap $map): PHPClass
+    private string $path;
+
+    public function getPath(): string
     {
-        $class = new PHPClass($map->logger);
-        $class->name = $map->sanitize->clean($name);
-        $class->namespace = $map->parseType();
+        return $this->path;
+    }
+
+    public static function fromSchema(string $name, Schema $schema, ObjectMap $map): ObjectClass
+    {
+        $class = new ObjectClass($map->logger);
+
+        $nameParts = explode('.', $map->sanitize->clean($name));
+        $class->path = join("/", $nameParts);
+        $class->name = array_pop($nameParts);
+        $class->namespace = $map->parseType(count($nameParts) > 0 ? join("/", $nameParts) : null);
+
         $class->baseType = $map->baseType;
         $class->description = $schema->description;
 
