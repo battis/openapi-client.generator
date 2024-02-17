@@ -49,7 +49,7 @@ abstract class BaseMap extends Loggable
 
         $this->sanitize = $config['sanitize'] ?? new Sanitize();
 
-        $this->map = $config['typeMap'] ?? new TypeMap($this->logger);
+        $this->map = $config['typeMap'] ?? new TypeMap();
     }
 
     /**

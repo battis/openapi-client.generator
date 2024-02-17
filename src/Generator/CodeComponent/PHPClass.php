@@ -87,7 +87,7 @@ class PHPClass extends BaseComponent
         sort($this->uses);
         $this->uses = array_unique($this->uses);
 
-        $classDoc = new PHPDoc($this->logger);
+        $classDoc = new PHPDoc();
         if ($this->description !== null) {
             $classDoc->addItem($this->description);
         }
@@ -103,12 +103,12 @@ class PHPClass extends BaseComponent
 
         return "<?php" . PHP_EOL . PHP_EOL .
         "namespace " . $this->namespace . ";" . PHP_EOL . PHP_EOL .
-        (empty($this->uses) ? "" : join(array_map(fn($t) => "use $t;" . PHP_EOL, $this->uses)) . PHP_EOL) .
+        (empty($this->uses) ? "" : join(array_map(fn(string $t) => "use $t;" . PHP_EOL, $this->uses)) . PHP_EOL) .
         $classDoc->asString(0) .
         "class $this->name extends " . TypeMap::parseType($this->baseType, false) . PHP_EOL .
         "{" . PHP_EOL .
         (empty($properties) ? "" : join(PHP_EOL, $properties)) .
-        (empty($this->methods) ? "" : PHP_EOL . join(PHP_EOL, array_map(fn($m) => $m->asImplementation(), $this->methods))) .
+        (empty($this->methods) ? "" : PHP_EOL . join(PHP_EOL, array_map(fn(Method $m) => $m->asJavascriptStyleImplementation(), $this->methods))) .
         "}" . PHP_EOL;
     }
 }

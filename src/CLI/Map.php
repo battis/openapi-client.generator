@@ -4,8 +4,6 @@ namespace Battis\OpenAPI\CLI;
 
 use Battis\DataUtilities\Path;
 use Battis\Loggable\Loggable;
-use Battis\OpenAPI\Generator\CodeComponent\BaseComponent;
-use Battis\OpenAPI\Generator\Map\BaseMap;
 use Battis\OpenAPI\Generator\Map\EndpointMap;
 use Battis\OpenAPI\Generator\Map\ObjectMap;
 use Battis\OpenAPI\Generator\Specification;
@@ -18,7 +16,7 @@ class Map extends CLI
 {
     private ?LoggerInterface $logger;
 
-    public function __construct(LoggerInterface $logger = null)
+    public function __construct(?LoggerInterface $logger = null)
     {
         parent::__construct();
         $this->logger = $logger;

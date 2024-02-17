@@ -29,11 +29,11 @@ class EndpointClass extends PHPClass
     public function mergeWith(EndpointClass $other)
     {
         // merge $url properties, taking longest one
-        $thisUrlProps = array_filter($this->properties, fn($prop) => $prop->getName() === 'url');
+        $thisUrlProps = array_filter($this->properties, fn(Property $prop) => $prop->getName() === 'url');
         assert(count($thisUrlProps) === 1, new GeneratorException("multiple URL properties"));
         $thisUrlProp = $thisUrlProps[0];
 
-        $otherUrlProps = array_filter($other->properties, fn($prop) => $prop->getName() === 'url');
+        $otherUrlProps = array_filter($other->properties, fn(Property $prop) => $prop->getName() === 'url');
         assert(count($otherUrlProps) === 1, new GeneratorException("multiple URL properties"));
         $otherUrlProp = $otherUrlProps[0];
 
@@ -63,8 +63,8 @@ class EndpointClass extends PHPClass
         assert(count($duplicateProperties) === 0, new GeneratorException("Duplicate properties in merge: " . var_export($duplicateProperties, true)));
 
 
-        $thisMethods = array_map(fn($m) => $m->getName(), $this->methods);
-        $otherMethods = array_map(fn($m) => $m->getName(), $other->methods);
+        $thisMethods = array_map(fn(Method $m) => $m->getName(), $this->methods);
+        $otherMethods = array_map(fn(Method $m) => $m->getName(), $other->methods);
         $duplicateMethods = array_intersect($thisMethods, $otherMethods);
         assert(count($duplicateMethods) === 0, new GeneratorException("Duplicate methods in merge: " . var_export($duplicateMethods, true)));
 
@@ -89,7 +89,7 @@ class EndpointClass extends PHPClass
         $class->namespace = $map->parseType($dir);
 
         preg_match_all("/\{([^}]+)\}\//", $class->url, $match, PREG_PATTERN_ORDER);
-        $operationSuffix = Text::snake_case_to_PascalCase((!empty($match[1]) ? "by_" : "") . join("_and_", array_map(fn($p) => str_replace("_id", "", $p), $match[1])));
+        $operationSuffix = Text::snake_case_to_PascalCase((!empty($match[1]) ? "by_" : "") . join("_and_", array_map(fn(string $p) => str_replace("_id", "", $p), $match[1])));
 
         foreach ($map->supportedOperations() as $operation) {
             if ($pathItem->$operation) {
@@ -138,8 +138,8 @@ class EndpointClass extends PHPClass
                 }
                 assert(is_string($type), new GeneratorException('type undefined'));
 
-                $pathArg = "[" . join("," . PHP_EOL, array_map(fn($p) => "\"{" . $p->getName() . "}\" => \$" . $p->getName(), $parameters["path"])) . "]";
-                $queryArg = "[" . join("," . PHP_EOL, array_map(fn($p) => "\"" . $p->getName() . "\" => $" . $p->getName(), $parameters["query"])) . "]";
+                $pathArg = "[" . join("," . PHP_EOL, array_map(fn(Parameter $p) => "\"{" . $p->getName() . "}\" => \$" . $p->getName(), $parameters["path"])) . "]";
+                $queryArg = "[" . join("," . PHP_EOL, array_map(fn(Parameter $p) => "\"" . $p->getName() . "\" => $" . $p->getName(), $parameters["query"])) . "]";
 
                 $body = "return " . self::instantiate(
                     $instantiate,

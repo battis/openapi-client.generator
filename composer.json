@@ -6,6 +6,7 @@
     "battis/loggable": "dev-main",
     "cebe/php-openapi": "^1.7",
     "friendsofphp/php-cs-fixer": "^3.49",
+    "league/html-to-markdown": "^5.1",
     "league/oauth2-client": "^2.7",
     "psr/log": "^3.0",
     "psr/simple-cache": "^3.0",

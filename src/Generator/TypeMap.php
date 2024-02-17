@@ -176,11 +176,11 @@ class TypeMap extends Loggable
             new SchemaException("array spec $elt->title missing items spec")
         );
         if ($elt->items instanceof Reference) {
-            return (string) $this->getTypeFromSchema($elt->items->getReference(), $absolute) .
+            return (string) $this->getTypeFromSchema($elt->items->getReference(), true, $absolute) .
               "[]";
         }
         $method = $elt->items->type;
-        return (string) $this->$method($elt->items) . "[]";
+        return (string) $this->$method($elt->items, $absolute) . "[]";
     }
 
     /**

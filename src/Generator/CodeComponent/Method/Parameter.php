@@ -41,6 +41,16 @@ class Parameter extends BaseComponent
         return $this->name;
     }
 
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
     public function asPHPDocParam(): string
     {
         return trim("@param " . ($this->optional ? "?" : "") . ($this->docType ?? $this->type) . " \$$this->name $this->description");

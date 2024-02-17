@@ -4,6 +4,9 @@ namespace Battis\OpenAPI\Generator\CodeComponent;
 
 class Property extends BaseComponent
 {
+    /**
+     * @var 'public'|'protected'|'private' $access
+     */
     private string $access = 'public';
 
     private bool $static = false;

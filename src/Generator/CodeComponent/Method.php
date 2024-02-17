@@ -7,6 +7,9 @@ use Battis\OpenAPI\Generator\TypeMap;
 
 class Method extends BaseComponent
 {
+    /**
+     * @var 'public'|'protected'|'private' $access
+     */
     protected string $access = "public";
 
     protected string $description;
@@ -51,7 +54,7 @@ class Method extends BaseComponent
     public function asImplementation(): string
     {
         $params = [];
-        $doc = new PHPDoc($this->logger);
+        $doc = new PHPDoc();
         $doc->addItem($this->description);
         foreach($this->parameters as $param) {
             $params[] = $param->asDeclaration();
@@ -64,6 +67,31 @@ class Method extends BaseComponent
             "$this->access function $this->name(" . join(", ", $params) . ")" . PHP_EOL .
             "{" . PHP_EOL .
             $this->body . PHP_EOL .
+        "}" . PHP_EOL;
+    }
+
+    public function asJavascriptStyleImplementation(): string
+    {
+        $doc = new PHPDoc();
+        $doc->addItem($this->description);
+        $optional = true;
+        if (!empty($this->parameters)) {
+            $parameters = [];
+            $parametersDoc = [];
+            foreach($this->parameters as $parameter) {
+                $parameters[] = $parameter->getName() . ($parameter->isOptional() ? "?" : "") . ": " . $parameter->getType();
+                $parametersDoc[] = $parameter->getName() . ": " . ($parameter->getDescription() ?? $parameter->getType());
+                $optional = $optional && $parameter->isOptional();
+            }
+            $doc->addItem("@param array{" . join(", ", $parameters) . "} \$params An associative array" . PHP_EOL . "    - " . join(PHP_EOL . "    - ", $parametersDoc));
+        }
+        $doc->addItem("@return " . TypeMap::parseType($this->returnType, true, true));
+        $doc->addItem('@api');
+        $body = str_replace("\$params[\"this\"]", "\$this", preg_replace("/\\$([a-z0-9_]+)/i", "\$params[\"$1\"]", $this->body));
+        return $doc->asString(1) .
+            "$this->access function $this->name(" . (empty($this->parameters) ? "" : "array \$params" . ($optional ? " = []" : "")) . ")" . PHP_EOL .
+            "{" . PHP_EOL .
+            $body . PHP_EOL .
         "}" . PHP_EOL;
     }
 }
