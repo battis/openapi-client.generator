@@ -28,8 +28,7 @@ class ObjectClass extends PHPClass
         $class->baseType = $map->baseType;
         $class->description = $schema->description;
 
-        $filePath = $map->parseFilePath($name);
-        $map->map->registerType("$class->namespace\\$class->name", $filePath);
+        $map->map->registerSchema($name, "$class->namespace\\$class->name");
         $class->log("$class->namespace\\$class->name");
 
         $fields = [];

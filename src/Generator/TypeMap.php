@@ -13,38 +13,9 @@ class TypeMap extends Loggable
     /** @var array<string, string> */
     private array $schemaToType = [];
 
-    /** @var array<string, string> */
-    private array $urlToPath = [];
-
-    /** @var array<string, string> */
-    private array $pathToType = [];
-
-    /** @var array<string, string> */
-    private array $urlToType = [];
-
     public function __construct(LoggerInterface $logger = null)
     {
         parent::__construct($logger);
-    }
-
-    /**
-     * @param array{ref?: string, type?: string, path?: string, url?: string} $registration
-     *
-     * @return void
-     &
-     * @psalm-suppress RiskyTruthyFalsyComparison
-     */
-    public function register(array $registration): void
-    {
-        if (!empty($registration['ref']) && !empty($registration['type'])) {
-            $this->registerSchema($registration['ref'], $registration['type']);
-        }
-        if (!empty($registration['url']) && !empty($registration['path'])) {
-            $this->registerUrl($registration['url'], $registration['path']);
-        }
-        if (!empty($registration['type']) && !empty($registration['path'])) {
-            $this->registerType($registration['type'], $registration['path']);
-        }
     }
 
     public function registerSchema(string $ref, string $type): void
@@ -60,49 +31,6 @@ class TypeMap extends Loggable
         $type = $this->schemaToType[$ref] ?? null;
         if ($type !== null) {
             $type = self::parseType($type, $fqn, $absolute);
-        }
-        return $type;
-    }
-
-    public function registerUrl(string $url, string $filePath): void
-    {
-        $this->urlToPath[$url] = $filePath;
-    }
-
-    public function getFilepathFromUrl(string $url): ?string
-    {
-        return $this->urlToPath[$url] ?? null;
-    }
-
-    public function registerType(string $type, string $filePath): void
-    {
-        $this->pathToType[$type] = $filePath;
-    }
-
-    public function getFilePathFromType(string $type): ?string
-    {
-        return $this->pathToType[$type] ?? null;
-    }
-
-    public function registerUrlGet(string $url, string $type): void
-    {
-        $this->urlToType[$url] = $type;
-    }
-
-    public function getTypeFromUrl(string $url, bool $fqn = true, bool $absolute = false): ?string
-    {
-        $type = $this->urlToType[$url] ?? null;
-        if ($type !== null) {
-            $type = self::parseType($type, $fqn, $absolute);
-        }
-        return $type;
-    }
-
-    public function getFilePathFromUrlGet(string $url): ?string
-    {
-        $type = $this->getTypeFromUrl($url);
-        if ($type !== null) {
-            return $this->getFilePathFromType($type);
         }
         return $type;
     }

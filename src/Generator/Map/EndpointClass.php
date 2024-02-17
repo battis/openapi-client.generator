@@ -147,9 +147,6 @@ class EndpointClass extends PHPClass
                         $ref = $schema->getReference();
                         $type = $map->map->getTypeFromSchema($ref);
                         $class->addUses($type);
-                        if ($operation === "get" && $type !== null) {
-                            $map->map->registerUrlGet($url, $type);
-                        }
                         $instantiate = true;
                     } elseif ($schema instanceof Schema) {
                         $method = $schema->type;
