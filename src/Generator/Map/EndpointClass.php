@@ -4,6 +4,7 @@ namespace Battis\OpenAPI\Generator\Map;
 
 use Battis\DataUtilities\Text;
 use Battis\Loggable\Loggable;
+use Battis\OpenAPI\Client\Exceptions\ArgumentException;
 use Battis\OpenAPI\Generator\CodeComponent\Method;
 use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
 use Battis\OpenAPI\Generator\CodeComponent\Method\ReturnType;
@@ -179,13 +180,34 @@ class EndpointClass extends PHPClass
                     }
                 }
 
+                /** @var Parameter[] $params */
                 $params = array_merge($parameters['path'], $parameters['query']);
                 if ($requestBody !== null) {
                     assert(!in_array($requestBody->getName(), array_map(fn(Parameter $p) => $p->getName(), $params)), new GeneratorException('requestBody already exists as path or query parameter'));
                     $params[] = $requestBody;
                 }
+                $assertions = [];
+                foreach($params as $param) {
+                    if (!$param->isOptional()) {
+                        $assertions[] = "assert(\$" . $param->getName() . " !== null, new ArgumentException(\"Parameter `" . $param->getName() . "` is required\"));" . PHP_EOL;
+                        $class->uses[] = ArgumentException::class;
+                    }
+                }
+                $assertions = join($assertions);
+                $throws = [];
+                if (!empty($assertions)) {
+                    $body = $assertions . PHP_EOL . $body;
+                    $throws[] = ReturnType::from(ArgumentException::class, "if required parameters are not defined");
+                }
 
-                $class->addMethod(Method::public($operation . $operationSuffix, ReturnType::from($type, $resp->description), $body, $op->description, $params));
+                $class->addMethod(Method::public(
+                    $operation . $operationSuffix,
+                    ReturnType::from($type, $resp->description),
+                    $body,
+                    $op->description,
+                    $params,
+                    $throws
+                ));
             }
         }
         return $class;

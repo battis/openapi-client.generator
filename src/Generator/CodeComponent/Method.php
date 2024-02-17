@@ -25,7 +25,12 @@ class Method extends BaseComponent
     protected string $body;
 
     protected ReturnType $returnType;
-    
+
+    /**
+     * @var ReturnType[] $throws
+     */
+    protected array $throws = [];
+
     public function getName(): string
     {
         return $this->name;
@@ -39,7 +44,7 @@ class Method extends BaseComponent
     /**
      * @param Parameter[] $parameters
      */
-    public static function public(string $name, ReturnType $returnType, string $body, ?string $description =  null, array $parameters = []): Method
+    public static function public(string $name, ReturnType $returnType, string $body, ?string $description =  null, array $parameters = [], array $throws = []): Method
     {
         $method = new Method();
         $method->name = $name;
@@ -48,6 +53,7 @@ class Method extends BaseComponent
         $method->body = $body;
         $method->description = $description;
         $method->parameters = $parameters;
+        $method->throws = $throws;
         return $method;
     }
 
@@ -62,6 +68,9 @@ class Method extends BaseComponent
         }
         // TODO order parameters with required first
         $doc->addItem($this->returnType->asPHPDocReturn());
+        foreach($this->throws as $throw) {
+            $doc->addItem($throw->asPHPDocThrows());
+        }
         $doc->addItem("@api");
         return $doc->asString(1) .
             "$this->access function $this->name(" . join(", ", $params) . ")" . PHP_EOL .
@@ -102,6 +111,9 @@ class Method extends BaseComponent
             $params = empty($params) ? "" : join(", ", $params);
         }
         $doc->addItem($this->returnType->asPHPDocReturn());
+        foreach($this->throws as $throw) {
+            $doc->addItem($throw->asPHPDocThrows());
+        }
         $doc->addItem('@api');
         $body = str_replace(["\$params[\"this\"]", "\$params[\"requestBody\"]"], ["\$this","\$requestBody"], preg_replace("/\\$([a-z0-9_]+)/i", "\$params[\"$1\"]", $this->body));
         return $doc->asString(1) .
