@@ -58,7 +58,9 @@ class ObjectMap extends BaseMap
                 $schema = $schema->resolve();
                 /** @var Schema $schema (because we just resolved it)*/
             }
-            $this->objects[$name] = ObjectClass::fromSchema($name, $schema, $this);
+            $class = ObjectClass::fromSchema($name, $schema, $this);
+            $this->map->registerClass($class);
+            $this->objects[$name] = $class;
         }
         return $this->map;
     }

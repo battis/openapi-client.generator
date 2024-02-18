@@ -108,7 +108,7 @@ class PHPClass extends BaseComponent
         "class $this->name extends " . TypeMap::parseType($this->baseType, false) . PHP_EOL .
         "{" . PHP_EOL .
         (empty($properties) ? "" : join(PHP_EOL, $properties)) .
-        (empty($this->methods) ? "" : PHP_EOL . join(PHP_EOL, array_map(fn(Method $m) => $m->asJavascriptStyleImplementation(), $this->methods))) .
+        (empty($this->methods) ? "" : PHP_EOL . join(PHP_EOL, array_map(fn(Method $m) => $m->asImplementation(), $this->methods))) .
         "}" . PHP_EOL;
     }
 }

@@ -84,7 +84,6 @@ class Map extends CLI
             $objectMap->deletePreviousMapping();
         }
         $map = $objectMap->generate();
-        $objectMap->writeFiles();
         $endpointMap = new EndpointMap([
             'spec' => $spec,
             'basePath' => Path::join($basePath, 'Endpoints'),
@@ -96,6 +95,8 @@ class Map extends CLI
             $endpointMap->deletePreviousMapping();
         }
         $endpointMap->generate();
+
+        $objectMap->writeFiles();
         $endpointMap->writeFiles();
     }
 }

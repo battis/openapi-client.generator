@@ -197,14 +197,19 @@ class EndpointClass extends PHPClass
                     $throws[] = ReturnType::from(ArgumentException::class, "if required parameters are not defined");
                 }
 
-                $class->addMethod(Method::public(
+                $method = Method::public(
                     $operation . $operationSuffix,
                     ReturnType::from($type, $resp->description),
                     $body,
                     $op->description,
                     $params,
                     $throws
-                ));
+                );
+                $class->addMethod($method);
+                $applicableClass = $map->map->getClassFromType($method->getReturnType()->getType());
+                if ($applicableClass !== null) {
+                    $map->log("Potential to map " . $class->getType() . "::" . $method->getName() . "() as a static getter for " . $applicableClass->getType(), Loggable::NOTICE);
+                }
             }
         }
         return $class;
@@ -263,7 +268,7 @@ class EndpointClass extends PHPClass
             if (preg_match("/\{([^}]+)\}/", $part, $match)) {
 
             } else {
-                $namespaceParts[] = $part;
+                $namespaceParts[] = Text::snake_case_to_PascalCase(Text::camelCase_to_snake_case($part));
             }
         }
         return (substr($path, 0, 1) === "/" ? "/" : "") .

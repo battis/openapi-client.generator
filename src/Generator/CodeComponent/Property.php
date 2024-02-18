@@ -2,6 +2,8 @@
 
 namespace Battis\OpenAPI\Generator\CodeComponent;
 
+use Battis\OpenAPI\Generator\TypeMap;
+
 class Property extends BaseComponent
 {
     /**
@@ -78,7 +80,7 @@ class Property extends BaseComponent
     public function asDeclaration(): string
     {
         $doc = new PHPDoc();
-        $doc->addItem(trim("@var " . ($this->docType ?? $this->type) . " $this->name $this->description"));
-        return $doc->asString() . "$this->access " . ($this->static ? "static " : "") . "$this->type \$$this->name" . (empty($this->defaultValue) ? "" : " = $this->defaultValue;") . PHP_EOL;
+        $doc->addItem(trim("@var " . TypeMap::parseType($this->docType ?? $this->type, true, true) . " \$$this->name $this->description"));
+        return $doc->asString() . "$this->access " . ($this->static ? "static " : "") . TypeMap::parseType($this->type, false) . " \$$this->name" . (empty($this->defaultValue) ? "" : " = $this->defaultValue") . ";" . PHP_EOL;
     }
 }

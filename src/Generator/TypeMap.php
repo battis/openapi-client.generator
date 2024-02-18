@@ -3,6 +3,7 @@
 namespace Battis\OpenAPI\Generator;
 
 use Battis\Loggable\Loggable;
+use Battis\OpenAPI\Generator\CodeComponent\PHPClass;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
@@ -10,8 +11,15 @@ use Psr\Log\LoggerInterface;
 
 class TypeMap extends Loggable
 {
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     private array $schemaToType = [];
+
+    /**
+     * @var array<string, PHPClass>
+     */
+    private array $typeToClass = [];
 
     public function __construct(LoggerInterface $logger = null)
     {
@@ -21,6 +29,11 @@ class TypeMap extends Loggable
     public function registerSchema(string $ref, string $type): void
     {
         $this->schemaToType[$ref] = $type;
+    }
+
+    public function registerClass(PHPClass $class): void
+    {
+        $this->typeToClass[$class->getType()] = $class;
     }
 
     public function getTypeFromSchema(
@@ -33,6 +46,11 @@ class TypeMap extends Loggable
             $type = self::parseType($type, $fqn, $absolute);
         }
         return $type;
+    }
+
+    public function getClassFromType(string $type): ?PHPClass
+    {
+        return $this->typeToClass[$type] ?? null;
     }
 
     public static function parseType(string $type, bool $fqn = true, bool $absolute = false): string

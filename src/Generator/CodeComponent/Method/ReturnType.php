@@ -19,6 +19,11 @@ class ReturnType extends BaseComponent
         return $returnType;
     }
 
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
     public function asPHPDocReturn(): string
     {
         return "@return " . TypeMap::parseType($this->type, true, true) . ($this->description ? " $this->description" : "");

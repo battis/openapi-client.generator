@@ -2,6 +2,7 @@
 
 namespace Battis\OpenAPI\Generator\CodeComponent;
 
+use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
 use Battis\OpenAPI\Generator\CodeComponent\Method\ReturnType;
 
@@ -11,6 +12,8 @@ class Method extends BaseComponent
      * @var 'public'|'protected'|'private' $access
      */
     protected string $access = "public";
+
+    protected bool $static = false;
 
     protected string $description;
 
@@ -36,6 +39,19 @@ class Method extends BaseComponent
         return $this->name;
     }
 
+    public function getReturnType(): ReturnType
+    {
+        return $this->returnType;
+    }
+
+    /**
+     * @return Parameter[]
+     */
+    public function getParameters(): array
+    {
+        return $this->parameters;
+    }
+
     public function addParameter(Parameter $parameter): void
     {
         $this->parameters[] = $parameter;
@@ -57,6 +73,13 @@ class Method extends BaseComponent
         return $method;
     }
 
+    public static function publicStatic(string $name, ReturnType $returnType, string $body, ?string $description = null, array $parameters = [], array $throws = []): Method
+    {
+        $method = self::public($name, $returnType, $body, $description, $parameters, $throws);
+        $method->static = true;
+        return $method;
+    }
+
     public function asImplementation(): string
     {
         $params = [];
@@ -73,7 +96,7 @@ class Method extends BaseComponent
         }
         $doc->addItem("@api");
         return $doc->asString(1) .
-            "$this->access function $this->name(" . join(", ", $params) . ")" . PHP_EOL .
+            "$this->access " . ($this->static ? "static " : "") . "function $this->name(" . join(", ", $params) . ")" . PHP_EOL .
             "{" . PHP_EOL .
             $this->body . PHP_EOL .
         "}" . PHP_EOL;
@@ -86,10 +109,12 @@ class Method extends BaseComponent
         $optional = true;
         $parameters = [];
         $params = "";
+        $body = $this->body;
         if (!empty($this->parameters)) {
             $parametersDoc = [];
             $requestBody = null;
             $params = [];
+            $paramNames = [];
             foreach($this->parameters as $parameter) {
                 if ($parameter->getName() === 'requestBody') {
                     $requestBody = $parameter;
@@ -97,6 +122,7 @@ class Method extends BaseComponent
                     $parameters[] = $parameter->getName() . ($parameter->isOptional() ? "?" : "") . ": " . $parameter->getType();
                     $parametersDoc[] = $parameter->getName() . ": " . ($parameter->getDescription() ?? $parameter->getType());
                     $optional = $optional && $parameter->isOptional();
+                    $paramNames[] = $parameter->getName();
                 }
             }
             if (!empty($parameters)) {
@@ -109,15 +135,20 @@ class Method extends BaseComponent
                 $params[] = $requestBody->asDeclaration();
             }
             $params = empty($params) ? "" : join(", ", $params);
+
+            usort($paramNames, fn($a, $b) => strlen($b) - strlen($a));
+            foreach($paramNames as $p) {
+                $body = str_replace("\$$p", "\$params[\"$p\"]", $body);
+            }
+
         }
         $doc->addItem($this->returnType->asPHPDocReturn());
         foreach($this->throws as $throw) {
             $doc->addItem($throw->asPHPDocThrows());
         }
         $doc->addItem('@api');
-        $body = str_replace(["\$params[\"this\"]", "\$params[\"requestBody\"]"], ["\$this","\$requestBody"], preg_replace("/\\$([a-z0-9_]+)/i", "\$params[\"$1\"]", $this->body));
         return $doc->asString(1) .
-            "$this->access function $this->name($params)" . PHP_EOL .
+            "$this->access " . ($this->static ? "static " : "") . "function $this->name($params)" . PHP_EOL .
             "{" . PHP_EOL .
             $body . PHP_EOL .
         "}" . PHP_EOL;
