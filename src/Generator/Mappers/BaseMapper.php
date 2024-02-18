@@ -16,15 +16,35 @@ abstract class BaseMapper extends Loggable
     public const BASE_NAMESPACE = 'baseNamespace';
     public const BASE_TYPE = 'baseType';
 
-    public OpenApi $spec;
-    public string $baseType;
-    public string $basePath;
-    public string $baseNamespace;
+    private OpenApi $spec;
+    private string $baseType;
+    private string $basePath;
+    private string $baseNamespace;
 
     /**
      * @api
      */
-    public abstract function simpleNamespace(): string;
+    abstract public function simpleNamespace(): string;
+
+    public function getSpec(): OpenApi
+    {
+        return $this->spec;
+    }
+
+    public function getBaseType(): string
+    {
+        return $this->baseType;
+    }
+
+    public function getBasePath(): string
+    {
+        return $this->basePath;
+    }
+
+    public function getBaseNamespace(): string
+    {
+        return $this->baseNamespace;
+    }
 
     /**
      * @var array<string, \Battis\OpenAPI\Generator\Classes\Writable> $classes `['type' => Writable]`
@@ -83,7 +103,7 @@ abstract class BaseMapper extends Loggable
     public function writeFiles(): void
     {
         foreach($this->classes as $class) {
-            $filePath = Path::join($this->basePath, $class->getPath(), $class->getName() . ".php");
+            $filePath = Path::join($this->basePath, $class->getPath() . ".php");
             @mkdir(dirname($filePath), 0744, true);
             assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $class);

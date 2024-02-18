@@ -31,7 +31,7 @@ class Endpoint extends Writable
 
         $class = new Endpoint();
         $class->description = $pathItem->description;
-        $class->baseType = $mapper->baseType;
+        $class->baseType = $mapper->getBaseType();
         $class->addProperty(PHPGeneratorProperty::protectedStatic('url', 'string', null, "\"$url\""));
         $class->url = $url;
         $class->path = static::normalizePath($path);
@@ -40,7 +40,7 @@ class Endpoint extends Writable
         if ($dir === "." || $dir === "/") {
             $dir = null;
         }
-        $class->namespace = Path::join("\\", [$mapper->baseNamespace, $dir === null ? [] : explode("/", $dir)]);
+        $class->namespace = Path::join("\\", [$mapper->getBaseNamespace(), $dir === null ? [] : explode("/", $dir)]);
 
         preg_match_all("/\{([^}]+)\}\//", $class->url, $match, PREG_PATTERN_ORDER);
         $operationSuffix = Text::snake_case_to_PascalCase((!empty($match[1]) ? "by_" : "") . join("_and_", array_map(fn(string $p) => str_replace("_id", "", $p), $match[1])));

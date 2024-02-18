@@ -15,17 +15,23 @@ class Router extends Writable
      * @param string $namespace
      * @param EndpointClass[] $classes
      */
-    public static function fromClassList(string $namespace, array $classes, EndpointMapper $endpointMap): Router
+    public static function fromClassList(string $namespace, array $classes, EndpointMapper $mapper): Router
     {
         $class = new Router();
-        $class->baseType = $endpointMap->baseType;
+        $class->baseType = $mapper->getBaseType();
         $class->description = "Routing class for the namespace $namespace";
 
         $namespaceParts = explode("\\", $namespace);
         $class->name = array_pop($namespaceParts);
         $class->namespace = join("\\", $namespaceParts);
-        $namespaceParts = array_slice($namespaceParts, count(explode("\\", $endpointMap->baseNamespace)));
-        $class->path = Path::join($namespaceParts, ['..', $class->name]);
+        $baseNamespaceParts = explode("\\", $mapper->getBaseNamespace());
+        if (count($baseNamespaceParts) > count($namespaceParts)) {
+            $namespaceParts = "..";
+            $class->name = $mapper->rootRouterName();
+        } else {
+            $namespaceParts = array_slice($namespaceParts, count($baseNamespaceParts));
+        }
+        $class->path = Path::join($namespaceParts, $class->name);
 
         foreach($classes as $c) {
             $propName = "_" . lcfirst($c->getName());

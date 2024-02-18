@@ -3,7 +3,6 @@
 namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
-use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
 use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Property;
@@ -22,10 +21,10 @@ class Component extends Writable
         $nameParts = explode("\\", $type);
         $class->name = array_pop($nameParts);
         $class->namespace = Path::join("\\", $nameParts);
-        $nameParts = array_slice($nameParts, count(explode("\\", $mapper->baseNamespace)));
-        $class->path = join("/", $nameParts);
+        $nameParts = array_slice($nameParts, count(explode("\\", $mapper->getBaseNamespace())));
+        $class->path = Path::join($nameParts, $class->name);
 
-        $class->baseType = $mapper->baseType;
+        $class->baseType = $mapper->getBaseType();
         $class->description = $schema->description;
 
         $fields = [];

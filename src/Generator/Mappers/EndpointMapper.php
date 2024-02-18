@@ -7,12 +7,15 @@ use Battis\OpenAPI\Client\BaseEndpoint;
 use Battis\OpenAPI\Generator\Classes\Endpoint;
 use Battis\OpenAPI\Generator\Classes\Router;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
+use Battis\OpenAPI\Generator\Sanitize;
 
 /**
  * @api
  */
 class EndpointMapper extends BaseMapper
 {
+    private string $name;
+
     /**
      * @return string[]
      */
@@ -31,6 +34,12 @@ class EndpointMapper extends BaseMapper
         return "Endpoints";
     }
 
+    public function rootRouterName(): string
+    {
+        $sanitize = Sanitize::getInstance();
+        return $sanitize->clean($this->getSpec()->info->title);
+    }
+
     /**
      * @param array{
      *     spec: \cebe\openapi\spec\OpenApi,
@@ -42,23 +51,23 @@ class EndpointMapper extends BaseMapper
     public function __construct(array $config)
     {
         $config[self::BASE_TYPE] ??= BaseEndpoint::class;
+        $config[self::BASE_PATH] = Path::join($config[self::BASE_PATH], $this->simpleNamespace());
+        $config[self::BASE_NAMESPACE] = Path::join("\\", [$config[self::BASE_NAMESPACE], $this->simpleNamespace()]);
         parent::__construct($config);
         assert(
-            is_a($this->baseType, BaseEndpoint::class, true),
+            is_a($this->getBaseType(), BaseEndpoint::class, true),
             new ConfigurationException(
                 "`" . self::BASE_TYPE . "` must be instance of " . BaseEndpoint::class
             )
         );
-        $this->basePath = Path::join($this->basePath, $this->simpleNamespace());
-        $this->baseNamespace = Path::join("\\", [$this->baseNamespace, $this->simpleNamespace()]);
     }
 
     public function generate(): void
     {
         $namespaces = [];
-        foreach ($this->spec->paths as $path => $pathItem) {
+        foreach ($this->getSpec()->paths as $path => $pathItem) {
             $path = (string) $path;
-            $url = Path::join($this->spec->servers[0]->url, $path);
+            $url = Path::join($this->getSpec()->servers[0]->url, $path);
             $class = Endpoint::fromPathItem($path, $pathItem, $this, $url);
             if (array_key_exists($class->getType(), $this->classes)) {
                 $this->classes[$class->getType()]->mergeWith($class);

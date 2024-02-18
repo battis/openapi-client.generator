@@ -32,11 +32,14 @@ class ComponentMapper extends BaseMapper
      */
     public function __construct($config)
     {
-        $config['baseType'] ??= BaseObject::class;
+        $config[self::BASE_TYPE] ??= BaseObject::class;
+        $config[self::BASE_PATH] = Path::join($config[self::BASE_PATH], $this->simpleNamespace());
+        $config[self::BASE_NAMESPACE] = Path::join("\\", [$config[self::BASE_NAMESPACE], $this->simpleNamespace()]);
         parent::__construct($config);
-        assert(is_a($this->baseType, BaseObject::class, true), new ConfigurationException("\$baseType must be instance of " . BaseObject::class));
-        $this->basePath = Path::join($this->basePath, $this->simpleNamespace());
-        $this->baseNamespace = Path::join("\\", [$this->baseNamespace, $this->simpleNamespace()]);
+        assert(
+            is_a($this->getBaseType(), BaseObject::class, true),
+            new ConfigurationException("`" . self::BASE_TYPE . "` must be instance of " . BaseObject::class)
+        );
     }
 
     public function generate(): void
@@ -45,18 +48,18 @@ class ComponentMapper extends BaseMapper
         $sanitize = Sanitize::getInstance();
 
         assert(
-            $this->spec->components && $this->spec->components->schemas,
+            $this->getSpec()->components && $this->getSpec()->components->schemas,
             new SchemaException("#/components/schemas not defined")
         );
 
-        foreach (array_keys($this->spec->components->schemas) as $name) {
+        foreach (array_keys($this->getSpec()->components->schemas) as $name) {
             $ref = "#/components/schemas/$name";
             $nameParts = array_map(fn(string $p) => $sanitize->clean($p), explode('.', $name));
-            $map->registerSchema($ref, Path::join("\\", [$this->baseNamespace, $nameParts]));
+            $map->registerSchema($ref, Path::join("\\", [$this->getBaseNamespace(), $nameParts]));
             $this->log("Mapped $ref => " . $map->getTypeFromSchema($ref));
         }
 
-        foreach ($this->spec->components->schemas as $name => $schema) {
+        foreach ($this->getSpec()->components->schemas as $name => $schema) {
             if ($schema instanceof Reference) {
                 $schema = $schema->resolve();
                 /** @var Schema $schema (because we just resolved it)*/
