@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2f957b5da7d9ad205b19407d4c124e0d",
+    "content-hash": "50f958bb8b8568ffae8a09cf1bfe8fa0",
     "packages": [
         {
             "name": "battis/data-utilities",
@@ -129,6 +129,38 @@
                 "source": "https://github.com/battis/loggable/tree/main"
             },
             "time": "2024-02-18T16:34:08+00:00"
+        },
+        {
+            "name": "battis/php-generator",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../php-generator",
+                "reference": "b1ac850f802fb3c37374df54524aafa39f0a88a4"
+            },
+            "require": {
+                "battis/data-utilities": "^1.2",
+                "league/html-to-markdown": "^5.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Battis\\PHPGenerator\\": "src"
+                }
+            },
+            "license": [
+                "GPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Seth Battis",
+                    "email": "seth@battis.net"
+                }
+            ],
+            "description": "Generate PHP code dynamically",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "cebe/php-openapi",
@@ -3190,7 +3222,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "battis/loggable": 20
+        "battis/loggable": 20,
+        "battis/php-generator": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,

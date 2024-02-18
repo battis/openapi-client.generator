@@ -1,106 +1,53 @@
 <?php
 
-namespace Battis\OpenAPI\Generator\Map;
+namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
 use Battis\DataUtilities\Text;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\Exceptions\ArgumentException;
-use Battis\OpenAPI\Generator\CodeComponent\Method;
-use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
-use Battis\OpenAPI\Generator\CodeComponent\Method\ReturnType;
-use Battis\OpenAPI\Generator\CodeComponent\PHPClass;
-use Battis\OpenAPI\Generator\CodeComponent\Property;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
+use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
+use Battis\PHPGenerator\Method;
+use Battis\PHPGenerator\Method\Parameter;
+use Battis\PHPGenerator\Method\ReturnType;
+use Battis\PHPGenerator\Property as PHPGeneratorProperty;
 use cebe\openapi\spec\Operation;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 
-class EndpointClass extends PHPClass
+class Endpoint extends Writable
 {
-    protected string $normalizedPath;
     protected string $url;
 
-    public function getNormalizedPath(): string
+    public static function fromPathItem(string $path, PathItem $pathItem, EndpointMapper $mapper, string $url): Endpoint
     {
-        return $this->normalizedPath;
-    }
-
-    public function mergeWith(EndpointClass $other)
-    {
-        // merge $url properties, taking longest one
-        $thisUrlProps = array_filter($this->properties, fn(Property $prop) => $prop->getName() === 'url');
-        $thisUrlProp = $thisUrlProps[0] ?? null;
-
-        $otherUrlProps = array_filter($other->properties, fn(Property $prop) => $prop->getName() === 'url');
-        $otherUrlProp = $otherUrlProps[0] ?? null;
-
-        if ($thisUrlProp && $otherUrlProp) {
-            $base = $thisUrlProp->getDefaultValue();
-            $base = substr($base, 1, strlen($base) - 2);
-            $extension = $otherUrlProp->getDefaultValue();
-            $extension = substr($extension, 1, strlen($extension) - 2);
-            if ($base !== $extension) {
-                if (strlen($base) > strlen($extension)) {
-                    $temp = $base;
-                    $base = $extension;
-                    $extension = $temp;
-                }
-                $this->log("Merging $base and $extension into one endpoint", Loggable::WARNING);
-
-                $this->removeProperty($thisUrlProp);
-                $other->removeProperty($otherUrlProp);
-                $this->addProperty(Property::protectedStatic('url', 'string', null, "\"$extension\""));
-            } else {
-                $other->removeProperty($otherUrlProp);
-            }
-        }
-
-        // testing to make sure there are no other duplicate properties
-        $thisProperties = array_map(fn(Property $p) => $p->getName(), $this->properties);
-        $otherProperties = array_map(fn(Property $p) => $p->getName(), $other->properties);
-        $duplicateProperties = array_intersect($thisProperties, $otherProperties);
-        assert(count($duplicateProperties) === 0, new GeneratorException("Duplicate properties in merge: " . var_export($duplicateProperties, true)));
-
-
-        $thisMethods = array_map(fn(Method $m) => $m->getName(), $this->methods);
-        $otherMethods = array_map(fn(Method $m) => $m->getName(), $other->methods);
-        $duplicateMethods = array_intersect($thisMethods, $otherMethods);
-        assert(count($duplicateMethods) === 0, new GeneratorException("Duplicate methods in merge: " . var_export($duplicateMethods, true)));
-
-        $this->uses = array_merge($this->uses, $other->uses);
-        $this->properties = array_merge($this->properties, $other->properties);
-        $this->methods = array_merge($this->methods, $other->methods);
-    }
-
-    public static function fromPathItem(string $path, PathItem $pathItem, EndpointMap $endpointMap, string $url): PHPClass
-    {
-        $map = TypeMap::getInstance();
+        $typeMap = TypeMap::getInstance();
         $sanitize = Sanitize::getInstance();
 
-        $class = new EndpointClass();
+        $class = new Endpoint();
         $class->description = $pathItem->description;
-        $class->baseType = $endpointMap->baseType;
-        $class->addProperty(Property::protectedStatic('url', 'string', null, "\"$url\""));
+        $class->baseType = $mapper->baseType;
+        $class->addProperty(PHPGeneratorProperty::protectedStatic('url', 'string', null, "\"$url\""));
         $class->url = $url;
-        $class->normalizedPath = static::normalizePath($path);
-        $class->name = $sanitize->clean(basename($class->normalizedPath));
-        $dir = dirname($class->normalizedPath);
+        $class->path = static::normalizePath($path);
+        $class->name = $sanitize->clean(basename($class->path));
+        $dir = dirname($class->path);
         if ($dir === "." || $dir === "/") {
             $dir = null;
         }
-        $class->namespace = Path::join("\\", [$endpointMap->baseNamespace, $dir === null ? [] : explode("/", $dir)]);
+        $class->namespace = Path::join("\\", [$mapper->baseNamespace, $dir === null ? [] : explode("/", $dir)]);
 
         preg_match_all("/\{([^}]+)\}\//", $class->url, $match, PREG_PATTERN_ORDER);
         $operationSuffix = Text::snake_case_to_PascalCase((!empty($match[1]) ? "by_" : "") . join("_and_", array_map(fn(string $p) => str_replace("_id", "", $p), $match[1])));
 
-        foreach ($endpointMap->supportedOperations() as $operation) {
+        foreach ($mapper->supportedOperations() as $operation) {
             if ($pathItem->$operation) {
-                self::staticLog(strtoupper($operation) . " " . $url);
+                Loggable::staticLog(strtoupper($operation) . " " . $url);
 
                 $instantiate = false;
 
@@ -117,15 +64,15 @@ class EndpointClass extends PHPClass
                 $requestBody = $op->requestBody;
                 if ($requestBody !== null) {
                     $docType = null;
-                    $schema = $requestBody->content[$endpointMap->expectedContentType()]->schema;
+                    $schema = $requestBody->content[$mapper->expectedContentType()]->schema;
                     $type = null;
                     if ($schema instanceof Reference) {
-                        $type = $map->getTypeFromSchema($schema->getReference());
+                        $type = $typeMap->getTypeFromSchema($schema->getReference());
                         $class->addUses($type);
                     } else { /** @var Schema $schema */
                         $method = $schema->type;
                         $type = $schema->type;
-                        $docType = $map->$method($schema, true);
+                        $docType = $typeMap->$method($schema, true);
                     }
                     $requestBody = Parameter::from('requestBody', $type, $requestBody->description);
                     if ($docType !== null) {
@@ -144,20 +91,20 @@ class EndpointClass extends PHPClass
                     new SchemaException("$operation $url has no OK response")
                 );
                 $content = $resp->content;
-                $content = $content[$endpointMap->expectedContentType()] ?? null;
+                $content = $content[$mapper->expectedContentType()] ?? null;
                 $type = null;
                 if ($content !== null) {
                     $schema = $content->schema;
                     if ($schema instanceof Reference) {
                         $ref = $schema->getReference();
-                        $type = $map->getTypeFromSchema($ref);
+                        $type = $typeMap->getTypeFromSchema($ref);
                         $class->addUses($type);
                         $instantiate = true;
                     } elseif ($schema instanceof Schema) {
                         $method = $schema->type;
-                        $type = (string) $map->$method($schema);
-                        $t = substr($type,0,-2);
-                        $instantiate = substr($type,-2) === '[]' && $map->getClassFromType($t) !== null;
+                        $type = (string) $typeMap->$method($schema);
+                        $t = substr($type, 0, -2);
+                        $instantiate = substr($type, -2) === '[]' && $typeMap->getClassFromType($t) !== null;
                         if ($instantiate) {
                             $class->addUses($t);
                         }
@@ -223,9 +170,9 @@ class EndpointClass extends PHPClass
                     $throws
                 );
                 $class->addMethod($method);
-                $applicableClass = $map->getClassFromType($method->getReturnType()->getType());
+                $applicableClass = $typeMap->getClassFromType($method->getReturnType()->getType());
                 if ($applicableClass !== null) {
-                    self::staticLog("Potential to map " . $class->getType() . "::" . $method->getName() . "() as a static getter for " . $applicableClass->getType(), Loggable::NOTICE);
+                    Loggable::staticLog("Potential to map " . $class->getType() . "::" . $method->getName() . "() as a static getter for " . $applicableClass->getType(), Loggable::NOTICE);
                 }
             }
         }
@@ -235,11 +182,11 @@ class EndpointClass extends PHPClass
     protected static function instantiate(bool $instantiate, string $type, string $arg): string
     {
         if ($instantiate) {
-            if (substr($type, -2) === '[]') { 
-                return "array_map(fn(\$a) => new ". TypeMap::parseType(substr($type, 0, -2), false) ."(\$a), {$arg})";
+            if (substr($type, -2) === '[]') {
+                return "array_map(fn(\$a) => new " . TypeMap::parseType(substr($type, 0, -2), false) . "(\$a), {$arg})";
             } else {
-            return "new " . TypeMap::parseType($type, false) . "(" . $arg . ")";
-}
+                return "new " . TypeMap::parseType($type, false) . "(" . $arg . ")";
+            }
         } else {
             return $arg;
         }
@@ -255,7 +202,7 @@ class EndpointClass extends PHPClass
      */
     protected static function methodParameters(Operation $operation): array
     {
-        $map = TypeMap::getInstance();
+        $typeMap = TypeMap::getInstance();
         $parameters = [
             'path' => [],
             'query' => [],
@@ -263,10 +210,10 @@ class EndpointClass extends PHPClass
         foreach($operation->parameters as $parameter) {
             if ($parameter->schema instanceof Reference) {
                 $ref = $parameter->schema->getReference();
-                $parameterType = $map->getTypeFromSchema($ref);
+                $parameterType = $typeMap->getTypeFromSchema($ref);
             } else {
                 $method = $parameter->schema->type;
-                $parameterType = $map->$method($parameter);
+                $parameterType = $typeMap->$method($parameter);
             }
             if ($parameter->in === 'path') {
                 $parameters['path'][] = Parameter::from($parameter->name, $parameterType, ($parameter->required ? "" : "(Optional) ") . $parameter->description, !$parameter->required);

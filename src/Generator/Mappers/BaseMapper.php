@@ -1,16 +1,15 @@
 <?php
 
-namespace Battis\OpenAPI\Generator\Map;
+namespace Battis\OpenAPI\Generator\Mappers;
 
 use Battis\DataUtilities\Path;
-use Battis\DataUtilities\Filesystem;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\Mappable;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
-use Battis\OpenAPI\Generator\TypeMap;
+use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use cebe\openapi\spec\OpenApi;
 
-abstract class BaseMap extends Loggable
+abstract class BaseMapper extends Loggable
 {
     public const SPEC = 'spec';
     public const BASE_PATH = 'basePath';
@@ -21,6 +20,16 @@ abstract class BaseMap extends Loggable
     public string $baseType;
     public string $basePath;
     public string $baseNamespace;
+
+    /**
+     * @api
+     */
+    public abstract function simpleNamespace(): string;
+
+    /**
+     * @var array<string, \Battis\OpenAPI\Generator\Classes\Writable> $classes `['type' => Writable]`
+     */
+    protected array $classes = [];
 
     /**
      * @param array{
@@ -53,34 +62,9 @@ abstract class BaseMap extends Loggable
     }
 
     /**
-     * @return TypeMap
-     *
      * @api
      */
     abstract public function generate(): void;
-
-    /**
-     * @return void
-     *
-     * @api
-     */
-    public function deletePreviousMapping(): bool
-    {
-        $success = true;
-        if (file_exists($this->basePath)) {
-            $this->log("Deleting contents of $this->basePath", Loggable::WARNING);
-            foreach(Filesystem::safeScandir($this->basePath) as $item) {
-                $filePath = Path::join($this->basePath, $item);
-                if(FileSystem::delete($filePath, true)) {
-                    $this->log("$filePath deleted", Loggable::WARNING);
-                } else {
-                    $this->log("Error deleting $filePath", Loggable::ERROR);
-                    $success = false;
-                }
-            }
-        }
-        return $success;
-    }
 
     public function parseFilePath(string $path): string
     {
@@ -94,5 +78,16 @@ abstract class BaseMap extends Loggable
             $parts[ ] = str_replace("/", "\\", $path);
         }
         return Path::join("\\", $parts);
+    }
+
+    public function writeFiles(): void
+    {
+        foreach($this->classes as $class) {
+            $filePath = Path::join($this->basePath, $class->getPath(), $class->getName() . ".php");
+            @mkdir(dirname($filePath), 0744, true);
+            assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
+            file_put_contents($filePath, $class);
+            $this->log("Wrote " . $class->getType() . " to $filePath");
+        }
     }
 }

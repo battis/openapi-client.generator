@@ -2,10 +2,11 @@
 
 namespace Battis\OpenAPI\CLI;
 
+use Battis\DataUtilities\Filesystem;
 use Battis\DataUtilities\Path;
 use Battis\Loggable\Loggable;
-use Battis\OpenAPI\Generator\Map\EndpointMap;
-use Battis\OpenAPI\Generator\Map\ObjectMap;
+use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
+use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\Specification;
 use cebe\openapi\spec\OpenApi;
 use Psr\Log\LoggerInterface;
@@ -14,12 +15,9 @@ use splitbrain\phpcli\Options;
 
 class Map extends CLI
 {
-    private ?LoggerInterface $logger;
-
     public function __construct(?LoggerInterface $logger = null)
     {
         parent::__construct();
-        $this->logger = $logger;
         Loggable::init($logger);
     }
 
@@ -40,15 +38,11 @@ class Map extends CLI
 
     protected function scanPath(string $path, string $basePath, string $baseNamespace, bool $delete = false): void
     {
-        if ($this->logger) {
-            $this->logger->info("Scanning $path");
-        }
+        Loggable::staticLog("Scanning $path");
         foreach(scandir($path) as $item) {
             $specPath = Path::join($path, $item);
             if (preg_match("/.*\\.(json|ya?ml)/i", $item)) {
-                if ($this->logger) {
-                    $this->logger->info("Parsing $specPath");
-                }
+                Loggable::staticLog("Parsing $specPath");
                 $spec = Specification::from($specPath);
                 $this->generateMapping(
                     $spec,
@@ -72,29 +66,43 @@ class Map extends CLI
         return $baseNamespace;
     }
 
-    protected function generateMapping(OpenApi $spec, string $basePath, string $baseNamespace, bool $delete = false): void
+    public function cleanup(string $path): void
     {
-        $objectMap = new ObjectMap([
+        if (file_exists($path)) {
+            Loggable::staticLog("Deleting contents of $path", Loggable::WARNING);
+            foreach(Filesystem::safeScandir($path) as $item) {
+                $filePath = Path::join($path, $item);
+                if(FileSystem::delete($filePath, true)) {
+                    Loggable::staticLog("$filePath deleted", Loggable::WARNING);
+                } else {
+                    Loggable::staticLog("Error deleting $filePath", Loggable::ERROR);
+                }
+            }
+        }
+    }
+
+    protected function generateMapping(OpenApi $spec, string $basePath, string $baseNamespace, bool $cleanup = false): void
+    {
+        $components = new ComponentMapper([
             'spec' => $spec,
             'basePath' => $basePath,
             'baseNamespace' => $baseNamespace,
         ]);
-        if ($delete) {
-            $objectMap->deletePreviousMapping();
-        }
-        $objectMap->generate();
+        $components->generate();
 
-        $endpointMap = new EndpointMap([
+        $endpoints = new EndpointMapper([
             'spec' => $spec,
             'basePath' => $basePath,
             'baseNamespace' => $baseNamespace,
         ]);
-        if ($delete) {
-            $endpointMap->deletePreviousMapping();
-        }
-        $endpointMap->generate();
+        $endpoints->generate();
 
-        $objectMap->writeFiles();
-        $endpointMap->writeFiles();
+        if ($cleanup) {
+            $this->cleanup($basePath);
+        }
+
+        $components->writeFiles();
+        $endpoints->writeFiles();
+        shell_exec(Path::join(getcwd(), '/vendor/bin/php-cs-fixer') . " fix " . $basePath);
     }
 }

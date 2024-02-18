@@ -1,11 +1,11 @@
 <?php
 
-namespace Battis\OpenAPI\Generator\Map;
+namespace Battis\OpenAPI\Generator\Mappers;
 
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Client\BaseObject;
+use Battis\OpenAPI\Generator\Classes\Component;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
-use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
@@ -15,17 +15,12 @@ use cebe\openapi\spec\Schema;
 /**
  * @api
  */
-class ObjectMap extends BaseMap
+class ComponentMapper extends BaseMapper
 {
     public function simpleNamespace(): string
     {
-        return "Objects";
+        return "Components";
     }
-
-    /**
-     * @var array<string, ObjectClass> $classes
-     */
-    private $classes = [];
 
     /**
      * @param array{
@@ -66,22 +61,10 @@ class ObjectMap extends BaseMap
                 $schema = $schema->resolve();
                 /** @var Schema $schema (because we just resolved it)*/
             }
-            $class = ObjectClass::fromSchema("#/components/schemas/$name", $schema, $this);
+            $class = Component::fromSchema("#/components/schemas/$name", $schema, $this);
             $this->log("Generated " . $class->getType());
             $map->registerClass($class);
             $this->classes[$name] = $class;
         }
-    }
-
-    public function writeFiles()
-    {
-        foreach($this->classes as $class) {
-            $filePath = Path::join($this->basePath, $class->getPath(), $class->getName(). ".php");
-            @mkdir(dirname($filePath), 0744, true);
-            assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
-            file_put_contents($filePath, $class);
-            $this->log("Wrote " . $class->getType() . " to $filePath");
-        }
-        shell_exec(Path::join(getcwd(), '/vendor/bin/php-cs-fixer') . " fix " . $this->basePath);
     }
 }

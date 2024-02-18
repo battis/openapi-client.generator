@@ -3,7 +3,7 @@
 namespace Battis\OpenAPI\Generator;
 
 use Battis\Loggable\Loggable;
-use Battis\OpenAPI\Generator\CodeComponent\PHPClass;
+use Battis\OpenAPI\Generator\Classes\Writable;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
@@ -35,7 +35,7 @@ class TypeMap extends Loggable
         $this->schemaToType[$ref] = $type;
     }
 
-    public function registerClass(PHPClass $class): void
+    public function registerClass(Writable $class): void
     {
         $this->typeToClass[$class->getType()] = $class;
     }
@@ -52,7 +52,7 @@ class TypeMap extends Loggable
         return $type;
     }
 
-    public function getClassFromType(string $type): ?PHPClass
+    public function getClassFromType(string $type): ?Writable
     {
         return $this->typeToClass[$type] ?? null;
     }

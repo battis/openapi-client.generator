@@ -1,23 +1,23 @@
 <?php
 
-namespace Battis\OpenAPI\Generator\Map;
+namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
-use Battis\Loggable\Loggable;
-use Battis\OpenAPI\Generator\CodeComponent\Method;
-use Battis\OpenAPI\Generator\CodeComponent\Method\ReturnType;
-use Battis\OpenAPI\Generator\CodeComponent\Property;
+use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\TypeMap;
+use Battis\PHPGenerator\Method;
+use Battis\PHPGenerator\Method\ReturnType;
+use Battis\PHPGenerator\Property;
 
-class RouterClass extends EndpointClass
+class Router extends Writable
 {
     /**
      * @param string $namespace
      * @param EndpointClass[] $classes
      */
-    public static function fromClassList(string $namespace, array $classes, EndpointMap $endpointMap): RouterClass
+    public static function fromClassList(string $namespace, array $classes, EndpointMapper $endpointMap): Router
     {
-        $class = new RouterClass();
+        $class = new Router();
         $class->baseType = $endpointMap->baseType;
         $class->description = "Routing class for the namespace $namespace";
 
@@ -25,7 +25,7 @@ class RouterClass extends EndpointClass
         $class->name = array_pop($namespaceParts);
         $class->namespace = join("\\", $namespaceParts);
         $namespaceParts = array_slice($namespaceParts, count(explode("\\", $endpointMap->baseNamespace)));
-        $class->normalizedPath = Path::join($namespaceParts, ['..']);
+        $class->path = Path::join($namespaceParts, ['..', $class->name]);
 
         foreach($classes as $c) {
             $propName = "_" . lcfirst($c->getName());
