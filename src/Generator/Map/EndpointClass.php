@@ -34,10 +34,10 @@ class EndpointClass extends PHPClass
     {
         // merge $url properties, taking longest one
         $thisUrlProps = array_filter($this->properties, fn(Property $prop) => $prop->getName() === 'url');
-        $thisUrlProp = $thisUrlProps[0];
+        $thisUrlProp = $thisUrlProps[0] ?? null;
 
         $otherUrlProps = array_filter($other->properties, fn(Property $prop) => $prop->getName() === 'url');
-        $otherUrlProp = $otherUrlProps[0];
+        $otherUrlProp = $otherUrlProps[0] ?? null;
 
         if ($thisUrlProp && $otherUrlProp) {
             $base = $thisUrlProp->getDefaultValue();
@@ -94,7 +94,6 @@ class EndpointClass extends PHPClass
             $dir = null;
         }
         $class->namespace = Path::join("\\", [$endpointMap->baseNamespace, $dir === null ? [] : explode("/", $dir)]);
-        self::staticLog(['path' => $path, 'url' => $url, 'class' => ['name' => $class->name, 'namespace' => $class->namespace, 'normalizedPath' => $class->normalizedPath]], Loggable::DEBUG);
 
         preg_match_all("/\{([^}]+)\}\//", $class->url, $match, PREG_PATTERN_ORDER);
         $operationSuffix = Text::snake_case_to_PascalCase((!empty($match[1]) ? "by_" : "") . join("_and_", array_map(fn(string $p) => str_replace("_id", "", $p), $match[1])));

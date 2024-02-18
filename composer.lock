@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "battis/data-utilities",
-            "version": "v1.2.4",
+            "version": "v1.2.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/battis/data-utilities.git",
-                "reference": "552a3f94c76a2f5c23be2afb860c76bc942b982f"
+                "reference": "9bf8dc8385a8563b2a7a6534eedd3c359acb90de"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/battis/data-utilities/zipball/552a3f94c76a2f5c23be2afb860c76bc942b982f",
-                "reference": "552a3f94c76a2f5c23be2afb860c76bc942b982f",
+                "url": "https://api.github.com/repos/battis/data-utilities/zipball/9bf8dc8385a8563b2a7a6534eedd3c359acb90de",
+                "reference": "9bf8dc8385a8563b2a7a6534eedd3c359acb90de",
                 "shasum": ""
             },
             "require": {
@@ -45,9 +45,9 @@
             "description": "A handful of useful helper functions to process data",
             "support": {
                 "issues": "https://github.com/battis/data-utilities/issues",
-                "source": "https://github.com/battis/data-utilities/tree/v1.2.4"
+                "source": "https://github.com/battis/data-utilities/tree/v1.2.6"
             },
-            "time": "2024-02-18T19:19:37+00:00"
+            "time": "2024-02-18T20:14:24+00:00"
         },
         {
             "name": "battis/hydratable",

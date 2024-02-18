@@ -3,11 +3,9 @@
 namespace Battis\OpenAPI\Generator\Map;
 
 use Battis\DataUtilities\Path;
-use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\BaseEndpoint;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
-use Battis\OpenAPI\Generator\TypeMap;
 
 /**
  * @api
@@ -17,7 +15,7 @@ class EndpointMap extends BaseMap
     /**
      * @var array<string, EndpointClass> $objects
      */
-    protected array $objects = [];
+    protected array $classes = [];
 
     /**
      * @return string[]
@@ -65,34 +63,39 @@ class EndpointMap extends BaseMap
         foreach ($this->spec->paths as $path => $pathItem) {
             $path = (string) $path;
             $url = Path::join($this->spec->servers[0]->url, $path);
-            $this->log($url);
             $class = EndpointClass::fromPathItem($path, $pathItem, $this, $url);
-            if (array_key_exists($class->getType(), $this->objects)) {
-                $this->objects[$class->getType()]->mergeWith($class);
+            if (array_key_exists($class->getType(), $this->classes)) {
+                $this->classes[$class->getType()]->mergeWith($class);
+                $this->log("Merged into " . $class->getType());
             } else {
-                $this->objects[$class->getType()] = $class;
+                $this->classes[$class->getType()] = $class;
                 $namespaces[$class->getNamespace()][] = $class;
+                $this->log("Generated " . $class->getType());
             }
         }
 
         foreach($namespaces as $namespace => $classes) {
             $class = RouterClass::fromClassList($namespace, $classes, $this);
-            if (array_key_exists($class->getType(), $this->objects)) {
-                $this->objects[$class->getType()]->mergeWith($class);
+            if (array_key_exists($class->getType(), $this->classes)) {
+                $this->classes[$class->getType()]->mergeWith($class);
             } else {
-                $this->objects[$class->getType()] = $class;
+                $this->classes[$class->getType()] = $class;
             }
         }
     }
 
     public function writeFiles(): void
     {
-        foreach($this->objects as $object) {
-            $filePath = Path::join($this->basePath, dirname($object->getNormalizedPath()), $object->getName() . ".php");
+        foreach($this->classes as $class) {
+            $dir = dirname($class->getNormalizedPath());
+            if ($dir === '.') {
+                $dir = '..';
+            }
+            $filePath = Path::join($this->basePath, $dir , $class->getName() . ".php");
             @mkdir(dirname($filePath), 0744, true);
             assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
-            file_put_contents($filePath, $object);
-            $this->log($filePath);
+            file_put_contents($filePath, $class);
+            $this->log("Wrote " . $class->getType() . " to $filePath");
         }
         shell_exec(Path::join(getcwd(), '/vendor/bin/php-cs-fixer') . " fix " . $this->basePath);
     }

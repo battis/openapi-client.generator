@@ -23,9 +23,9 @@ class ObjectMap extends BaseMap
     }
 
     /**
-     * @var ClassObject[] $objects
+     * @var array<string, ObjectClass> $classes
      */
-    private $objects = [];
+    private $classes = [];
 
     /**
      * @param array{
@@ -58,7 +58,7 @@ class ObjectMap extends BaseMap
             $ref = "#/components/schemas/$name";
             $nameParts = array_map(fn(string $p) => $sanitize->clean($p), explode('.', $name));
             $map->registerSchema($ref, Path::join("\\", [$this->baseNamespace, $nameParts]));
-            $this->log("$ref => " . $map->getTypeFromSchema($ref));
+            $this->log("Mapped $ref => " . $map->getTypeFromSchema($ref));
         }
 
         foreach ($this->spec->components->schemas as $name => $schema) {
@@ -67,19 +67,20 @@ class ObjectMap extends BaseMap
                 /** @var Schema $schema (because we just resolved it)*/
             }
             $class = ObjectClass::fromSchema("#/components/schemas/$name", $schema, $this);
+            $this->log("Generated " . $class->getType());
             $map->registerClass($class);
-            $this->objects[$name] = $class;
+            $this->classes[$name] = $class;
         }
     }
 
     public function writeFiles()
     {
-        foreach($this->objects as $class) {
+        foreach($this->classes as $class) {
             $filePath = Path::join($this->basePath, $class->getPath(), $class->getName(). ".php");
             @mkdir(dirname($filePath), 0744, true);
             assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $class);
-            $this->log($filePath);
+            $this->log("Wrote " . $class->getType() . " to $filePath");
         }
         shell_exec(Path::join(getcwd(), '/vendor/bin/php-cs-fixer') . " fix " . $this->basePath);
     }

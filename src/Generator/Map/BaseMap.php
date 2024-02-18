@@ -72,7 +72,7 @@ abstract class BaseMap extends Loggable
             foreach(Filesystem::safeScandir($this->basePath) as $item) {
                 $filePath = Path::join($this->basePath, $item);
                 if(FileSystem::delete($filePath, true)) {
-                    $this->log("$filePath deleted");
+                    $this->log("$filePath deleted", Loggable::WARNING);
                 } else {
                     $this->log("Error deleting $filePath", Loggable::ERROR);
                     $success = false;
