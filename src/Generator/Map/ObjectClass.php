@@ -2,8 +2,10 @@
 
 namespace Battis\OpenAPI\Generator\Map;
 
+use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Generator\CodeComponent\PHPClass;
 use Battis\OpenAPI\Generator\CodeComponent\Property;
+use Battis\OpenAPI\Generator\TypeMap;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 
@@ -16,20 +18,23 @@ class ObjectClass extends PHPClass
         return $this->path;
     }
 
-    public static function fromSchema(string $name, Schema $schema, ObjectMap $map): ObjectClass
+    public static function fromSchema(string $ref, Schema $schema, ObjectMap $objectMap): ObjectClass
     {
-        $class = new ObjectClass($map->logger);
+        $map = TypeMap::getInstance();
 
-        $nameParts = explode('.', $map->sanitize->clean($name));
-        $class->path = join("/", $nameParts);
+        $class = new ObjectClass();
+
+        $type = $map->getTypeFromSchema($ref);
+        $nameParts = explode("\\", $type);
         $class->name = array_pop($nameParts);
-        $class->namespace = $map->parseType(count($nameParts) > 0 ? join("/", $nameParts) : null);
+        $class->namespace = Path::join("\\", $nameParts);
+        $nameParts = array_slice($nameParts, count(explode("\\", $objectMap->baseNamespace)));
+        $class->path = join("/", $nameParts);
 
-        $class->baseType = $map->baseType;
+        $class->baseType = $objectMap->baseType;
         $class->description = $schema->description;
 
-        $map->map->registerSchema($name, "$class->namespace\\$class->name");
-        $class->log("$class->namespace\\$class->name");
+        $class->log("Building $class->namespace\\$class->name");
 
         $fields = [];
         foreach ($schema->properties as $name => $property) {
@@ -37,13 +42,13 @@ class ObjectClass extends PHPClass
             if ($property instanceof Reference) {
                 $ref = $property->getReference();
                 $property = $property->resolve();
-                $type = $map->map->getTypeFromSchema($ref, true, true);
+                $type = $map->getTypeFromSchema($ref, true, true);
             }
             /** @var Schema $property (because we just resolved it)*/
 
             $fields[] = $name;
             $method = $property->type;
-            $type ??= (string) $map->map->$method($property, true);
+            $type ??= (string) $map->$method($property, true);
             // TODO handle enums
             $class->addProperty(Property::documentationOnly((string) $name, $type, $property->description));
         }

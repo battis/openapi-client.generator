@@ -57,8 +57,13 @@ class Parameter extends BaseComponent
         return trim("@param " . ($this->optional ? "?" : "") . ($this->docType ?? $this->type) . " \$$this->name $this->description");
     }
 
-    public function asDeclaration(): string
+    /**
+     * @param array<string, string> $remap
+     *
+     * @return string
+     */
+    public function asDeclaration(array $remap = []): string
     {
-        return ($this->optional ? "?" : "") . TypeMap::parseType($this->type, false) . " \$$this->name" . ($this->optional ? " = null" : "");
+        return ($this->optional ? "?" : "") . ($remap[$this->type] ?? TypeMap::parseType($this->type, false)) . " \$$this->name" . ($this->optional ? " = null" : "");
     }
 }

@@ -7,24 +7,28 @@ use Battis\OpenAPI\Generator\CodeComponent\PHPClass;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
-use Psr\Log\LoggerInterface;
 
 class TypeMap extends Loggable
 {
+    protected static ?TypeMap $instance = null;
+
     /**
      * @var array<string, string>
      */
     private array $schemaToType = [];
 
+    public static function getInstance(): TypeMap
+    {
+        if (self::$instance === null) {
+            self::$instance = new TypeMap();
+        }
+        return self::$instance;
+    }
+
     /**
      * @var array<string, PHPClass>
      */
     private array $typeToClass = [];
-
-    public function __construct(LoggerInterface $logger = null)
-    {
-        parent::__construct($logger);
-    }
 
     public function registerSchema(string $ref, string $type): void
     {

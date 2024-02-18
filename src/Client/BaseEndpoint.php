@@ -16,7 +16,7 @@ abstract class BaseEndpoint extends Mappable
     protected static string $url = "";
 
     protected APIClient $api;
-    protected HttpClient $http;
+    protected ?HttpClient $http = null;
 
     protected static string $EXPECTED_RESPONSE_MIMETYPE = 'application/json';
 
@@ -24,7 +24,6 @@ abstract class BaseEndpoint extends Mappable
     {
         parent::__construct();
         $this->api = $api;
-        $this->http = new HttpClient();
     }
 
     /**
@@ -60,6 +59,11 @@ abstract class BaseEndpoint extends Mappable
             ['Authentication' => "Bearer $token"],
             $body
         );
+
+        if ($this->http === null) {
+            $this->http = new HttpClient();
+        }
+
         return $this->decodeResponse(
             $this->http
             ->send($request)

@@ -45,6 +45,11 @@ class PHPClass extends BaseComponent
         return Path::join("\\", [$this->namespace, $this->name]);
     }
 
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
     public function addProperty(Property $property): void
     {
         $this->properties[] = $property;
@@ -86,6 +91,16 @@ class PHPClass extends BaseComponent
         $this->addUses($this->baseType);
         sort($this->uses);
         $this->uses = array_unique($this->uses);
+        $uses = [];
+        $remap = [];
+        foreach($this->uses as $use) {
+            if (TypeMap::parseType($use, false) === $this->name) {
+                $remap[$use] = TypeMap::parseType($use, false) . "Disambiguate";
+                $uses[] = "use $use as $remap[$use];" . PHP_EOL;
+            } else {
+                $uses[] = "use $use;" . PHP_EOL;
+            }
+        }
 
         $classDoc = new PHPDoc();
         if ($this->description !== null) {
@@ -96,19 +111,19 @@ class PHPClass extends BaseComponent
             if ($prop->isDocumentationOnly()) {
                 $classDoc->addItem($prop->asPHPDocProperty());
             } else {
-                $properties[] = $prop->asDeclaration();
+                $properties[] = $prop->asDeclaration($remap);
             }
         }
         $classDoc->addItem("@api");
 
         return "<?php" . PHP_EOL . PHP_EOL .
         "namespace " . $this->namespace . ";" . PHP_EOL . PHP_EOL .
-        (empty($this->uses) ? "" : join(array_map(fn(string $t) => "use $t;" . PHP_EOL, $this->uses)) . PHP_EOL) .
+        (empty($uses) ? "" : join($uses) . PHP_EOL) .
         $classDoc->asString(0) .
         "class $this->name extends " . TypeMap::parseType($this->baseType, false) . PHP_EOL .
         "{" . PHP_EOL .
         (empty($properties) ? "" : join(PHP_EOL, $properties)) .
-        (empty($this->methods) ? "" : PHP_EOL . join(PHP_EOL, array_map(fn(Method $m) => $m->asImplementation(), $this->methods))) .
+        (empty($this->methods) ? "" : PHP_EOL . join(PHP_EOL, array_map(fn(Method $m) => $m->asImplementation($remap), $this->methods))) .
         "}" . PHP_EOL;
     }
 }

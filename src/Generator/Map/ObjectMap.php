@@ -7,6 +7,7 @@ use Battis\OpenAPI\Client\BaseObject;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
+use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
@@ -16,6 +17,11 @@ use cebe\openapi\spec\Schema;
  */
 class ObjectMap extends BaseMap
 {
+    public function simpleNamespace(): string
+    {
+        return "Objects";
+    }
+
     /**
      * @var ClassObject[] $objects
      */
@@ -27,9 +33,6 @@ class ObjectMap extends BaseMap
      *     basePath: string,
      *     baseNamespace: string,
      *     baseType?: string,
-     *     sanitize?: \Battis\OpenAPI\Generator\Sanitize,
-     *     typeMap?: \Battis\OpenAPI\Generator\TypeMap,
-     *     logger?: ?\Psr\Log\LoggerInterface
      *   } $config
      */
     public function __construct($config)
@@ -37,10 +40,15 @@ class ObjectMap extends BaseMap
         $config['baseType'] ??= BaseObject::class;
         parent::__construct($config);
         assert(is_a($this->baseType, BaseObject::class, true), new ConfigurationException("\$baseType must be instance of " . BaseObject::class));
+        $this->basePath = Path::join($this->basePath, $this->simpleNamespace());
+        $this->baseNamespace = Path::join("\\", [$this->baseNamespace, $this->simpleNamespace()]);
     }
 
-    public function generate(): TypeMap
+    public function generate(): void
     {
+        $map = TypeMap::getInstance();
+        $sanitize = Sanitize::getInstance();
+
         assert(
             $this->spec->components && $this->spec->components->schemas,
             new SchemaException("#/components/schemas not defined")
@@ -48,9 +56,9 @@ class ObjectMap extends BaseMap
 
         foreach (array_keys($this->spec->components->schemas) as $name) {
             $ref = "#/components/schemas/$name";
-            $name = $this->sanitize->clean((string) $name);
-            $this->map->registerSchema($ref, str_replace('.', "\\", $this->parseType($name)));
-            $this->log($ref);
+            $nameParts = array_map(fn(string $p) => $sanitize->clean($p), explode('.', $name));
+            $map->registerSchema($ref, Path::join("\\", [$this->baseNamespace, $nameParts]));
+            $this->log("$ref => " . $map->getTypeFromSchema($ref));
         }
 
         foreach ($this->spec->components->schemas as $name => $schema) {
@@ -58,17 +66,16 @@ class ObjectMap extends BaseMap
                 $schema = $schema->resolve();
                 /** @var Schema $schema (because we just resolved it)*/
             }
-            $class = ObjectClass::fromSchema($name, $schema, $this);
-            $this->map->registerClass($class);
+            $class = ObjectClass::fromSchema("#/components/schemas/$name", $schema, $this);
+            $map->registerClass($class);
             $this->objects[$name] = $class;
         }
-        return $this->map;
     }
 
     public function writeFiles()
     {
         foreach($this->objects as $class) {
-            $filePath = Path::join($this->basePath, $class->getPath() . ".php");
+            $filePath = Path::join($this->basePath, $class->getPath(), $class->getName(). ".php");
             @mkdir(dirname($filePath), 0744, true);
             assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $class);

@@ -76,20 +76,18 @@ class Map extends CLI
     {
         $objectMap = new ObjectMap([
             'spec' => $spec,
-            'basePath' => Path::join($basePath, 'Objects'),
-            'baseNamespace' => Path::join("\\", [$baseNamespace, 'Objects']),
-            'logger' => $this->logger,
+            'basePath' => $basePath,
+            'baseNamespace' => $baseNamespace,
         ]);
         if ($delete) {
             $objectMap->deletePreviousMapping();
         }
-        $map = $objectMap->generate();
+        $objectMap->generate();
+
         $endpointMap = new EndpointMap([
             'spec' => $spec,
-            'basePath' => Path::join($basePath, 'Endpoints'),
-            'baseNamespace' => Path::join("\\", [$baseNamespace, 'Endpoints']),
-            'typeMap' => $map,
-            'logger' => $this->logger,
+            'basePath' => $basePath,
+            'baseNamespace' => $baseNamespace,
         ]);
         if ($delete) {
             $endpointMap->deletePreviousMapping();

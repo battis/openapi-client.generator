@@ -7,16 +7,17 @@ use Battis\DataUtilities\Filesystem;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\Mappable;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
-use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use cebe\openapi\spec\OpenApi;
 
 abstract class BaseMap extends Loggable
 {
-    public OpenApi $spec;
-    public Sanitize $sanitize;
-    public TypeMap $map;
+    public const SPEC = 'spec';
+    public const BASE_PATH = 'basePath';
+    public const BASE_NAMESPACE = 'baseNamespace';
+    public const BASE_TYPE = 'baseType';
 
+    public OpenApi $spec;
     public string $baseType;
     public string $basePath;
     public string $baseNamespace;
@@ -27,29 +28,28 @@ abstract class BaseMap extends Loggable
      *     basePath: string,
      *     baseNamespace: string,
      *     baseType: string,
-     *     sanitize?: \Battis\OpenAPI\Generator\Sanitize,
-     *     typeMap?: \Battis\OpenAPI\Generator\TypeMap,
-     *     logger?: ?\Psr\Log\LoggerInterface
      *   } $config
      */
     public function __construct(array $config)
     {
-        parent::__construct($config['logger'] ?? null);
+        parent::__construct();
 
-        $this->spec = $config['spec'];
+        $this->spec = $config[self::SPEC];
 
-        $this->baseType = $config['baseType'];
-        assert(is_a($this->baseType, Mappable::class, true), new ConfigurationException("\$baseType must be instance of " . Mappable::class));
+        $this->baseType = $config[self::BASE_TYPE];
+        assert(
+            is_a($this->baseType, Mappable::class, true),
+            new ConfigurationException("`" . self::BASE_TYPE . "` must be instance of " . Mappable::class)
+        );
 
-        $this->basePath = Path::canonicalize($config['basePath'], getcwd());
+        $this->basePath = Path::canonicalize($config[self::BASE_PATH], getcwd());
         @mkdir($this->basePath, 0744, true);
 
-        assert(!empty($config['baseNamespace']), new ConfigurationException("base namespace must be specified"));
-        $this->baseNamespace = trim($config['baseNamespace'], "\\");
-
-        $this->sanitize = $config['sanitize'] ?? new Sanitize();
-
-        $this->map = $config['typeMap'] ?? new TypeMap();
+        assert(
+            !empty($config[self::BASE_NAMESPACE]),
+            new ConfigurationException("`" . self::BASE_NAMESPACE . "` must be defined")
+        );
+        $this->baseNamespace = trim($config[self::BASE_NAMESPACE], "\\");
     }
 
     /**
@@ -57,19 +57,29 @@ abstract class BaseMap extends Loggable
      *
      * @api
      */
-    abstract public function generate(): TypeMap;
+    abstract public function generate(): void;
 
     /**
      * @return void
      *
      * @api
      */
-    public function deletePreviousMapping(): void
+    public function deletePreviousMapping(): bool
     {
-        $this->log("Deleting contents of $this->basePath", Loggable::WARNING);
-        foreach(Filesystem::safeScandir($this->basePath) as $item) {
-            FileSystem::delete(Path::join($this->basePath, $item), true);
+        $success = true;
+        if (file_exists($this->basePath)) {
+            $this->log("Deleting contents of $this->basePath", Loggable::WARNING);
+            foreach(Filesystem::safeScandir($this->basePath) as $item) {
+                $filePath = Path::join($this->basePath, $item);
+                if(FileSystem::delete($filePath, true)) {
+                    $this->log("$filePath deleted");
+                } else {
+                    $this->log("Error deleting $filePath", Loggable::ERROR);
+                    $success = false;
+                }
+            }
         }
+        return $success;
     }
 
     public function parseFilePath(string $path): string

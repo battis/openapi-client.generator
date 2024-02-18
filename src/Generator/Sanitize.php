@@ -2,15 +2,26 @@
 
 namespace Battis\OpenAPI\Generator;
 
+use Battis\Loggable\Loggable;
 use sspat\ReservedWords\ReservedWords;
 
-class Sanitize
+class Sanitize extends Loggable
 {
+    protected static ?Sanitize $instance = null;
+
     private ReservedWords $reserved;
 
-    public function __construct()
+    private function __construct()
     {
         $this->reserved = new ReservedWords();
+    }
+
+    public static function getInstance(): Sanitize
+    {
+        if (self::$instance === null) {
+            self::$instance = new Sanitize();
+        }
+        return self::$instance;
     }
 
     public function isSafe(string $name): bool

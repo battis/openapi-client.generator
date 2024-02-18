@@ -3,6 +3,7 @@
 namespace Battis\OpenAPI\Generator\Map;
 
 use Battis\DataUtilities\Path;
+use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\BaseEndpoint;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
@@ -31,31 +32,36 @@ class EndpointMap extends BaseMap
         return "application/json";
     }
 
+    public function simpleNamespace(): string
+    {
+        return "Endpoints";
+    }
+
     /**
      * @param array{
      *     spec: \cebe\openapi\spec\OpenApi,
      *     basePath: string,
      *     baseNamespace: string,
      *     baseType?: string,
-     *     sanitize?: \Battis\OpenAPI\Generator\Sanitize,
-     *     typeMap?: \Battis\OpenAPI\Generator\TypeMap,
-     *     logger?: ?\Psr\Log\LoggerInterface
      *   } $config
      */
     public function __construct(array $config)
     {
-        $config["baseType"] ??= BaseEndpoint::class;
+        $config[self::BASE_TYPE] ??= BaseEndpoint::class;
         parent::__construct($config);
         assert(
             is_a($this->baseType, BaseEndpoint::class, true),
             new ConfigurationException(
-                "\$baseType must be instance of " . BaseEndpoint::class
+                "`" . self::BASE_TYPE . "` must be instance of " . BaseEndpoint::class
             )
         );
+        $this->basePath = Path::join($this->basePath, $this->simpleNamespace());
+        $this->baseNamespace = Path::join("\\", [$this->baseNamespace, $this->simpleNamespace()]);
     }
 
-    public function generate(): TypeMap
+    public function generate(): void
     {
+        $namespaces = [];
         foreach ($this->spec->paths as $path => $pathItem) {
             $path = (string) $path;
             $url = Path::join($this->spec->servers[0]->url, $path);
@@ -65,10 +71,18 @@ class EndpointMap extends BaseMap
                 $this->objects[$class->getType()]->mergeWith($class);
             } else {
                 $this->objects[$class->getType()] = $class;
+                $namespaces[$class->getNamespace()][] = $class;
             }
         }
 
-        return $this->map;
+        foreach($namespaces as $namespace => $classes) {
+            $class = RouterClass::fromClassList($namespace, $classes, $this);
+            if (array_key_exists($class->getType(), $this->objects)) {
+                $this->objects[$class->getType()]->mergeWith($class);
+            } else {
+                $this->objects[$class->getType()] = $class;
+            }
+        }
     }
 
     public function writeFiles(): void

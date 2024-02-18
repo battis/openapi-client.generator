@@ -59,14 +59,21 @@ class Property extends BaseComponent
         $property->documentationOnly = true;
         return $property;
     }
-
-    public static function protectedStatic(string $name, string $type, ?string $description = null, ?string $defaultValue = null): Property
+    public static function private(string $name, string $type, ?string $description = null, ?string $defaultValue = null): Property
     {
         $property = new Property();
         $property->name = $name;
         $property->type = $type;
         $property->description = $description;
         $property->defaultValue = $defaultValue;
+        $property->access = 'private';
+        $property->static = true;
+        return $property;
+    }
+
+    public static function protectedStatic(string $name, string $type, ?string $description = null, ?string $defaultValue = null): Property
+    {
+        $property = self::private($name, $type, $description, $defaultValue);
         $property->access = 'protected';
         $property->static = true;
         return $property;
@@ -77,10 +84,15 @@ class Property extends BaseComponent
         return trim("@property " . ($this->docType ?? $this->type) . " \$$this->name $this->description");
     }
 
-    public function asDeclaration(): string
+    /**
+     * @param array<string, string> $remap
+     *
+     * @return string
+     */
+    public function asDeclaration(array $remap = []): string
     {
         $doc = new PHPDoc();
         $doc->addItem(trim("@var " . TypeMap::parseType($this->docType ?? $this->type, true, true) . " \$$this->name $this->description"));
-        return $doc->asString() . "$this->access " . ($this->static ? "static " : "") . TypeMap::parseType($this->type, false) . " \$$this->name" . (empty($this->defaultValue) ? "" : " = $this->defaultValue") . ";" . PHP_EOL;
+        return $doc->asString() . "$this->access " . ($this->static ? "static " : "") . ($remap[$this->type] ?? TypeMap::parseType($this->type, false)) . " \$$this->name" . (empty($this->defaultValue) ? "" : " = $this->defaultValue") . ";" . PHP_EOL;
     }
 }

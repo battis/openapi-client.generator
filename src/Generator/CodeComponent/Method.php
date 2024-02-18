@@ -5,6 +5,7 @@ namespace Battis\OpenAPI\Generator\CodeComponent;
 use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\CodeComponent\Method\Parameter;
 use Battis\OpenAPI\Generator\CodeComponent\Method\ReturnType;
+use Battis\OpenAPI\Generator\TypeMap;
 
 class Method extends BaseComponent
 {
@@ -15,7 +16,7 @@ class Method extends BaseComponent
 
     protected bool $static = false;
 
-    protected string $description;
+    protected ?string $description;
 
     protected string $name;
 
@@ -80,13 +81,20 @@ class Method extends BaseComponent
         return $method;
     }
 
-    public function asImplementation(): string
+    /**
+     * @param array<string,string> $remap
+     *
+     * @return string
+     */
+    public function asImplementation(array $remap = []): string
     {
         $params = [];
         $doc = new PHPDoc();
-        $doc->addItem($this->description);
+        if ($this->description) {
+            $doc->addItem($this->description);
+        }
         foreach($this->parameters as $param) {
-            $params[] = $param->asDeclaration();
+            $params[] = $param->asDeclaration($remap);
             $doc->addItem($param->asPHPDocParam());
         }
         // TODO order parameters with required first
@@ -95,21 +103,48 @@ class Method extends BaseComponent
             $doc->addItem($throw->asPHPDocThrows());
         }
         $doc->addItem("@api");
+
+        $body = $this->body;
+        foreach($remap as $type => $alt) {
+            $newBody = preg_replace("/(\W)(" . TypeMap::parseType($type, false) . ")(\W)/m", "$1$alt$3", $body);
+            if ($newBody !== $body) {
+                $body = $newBody;
+                $this->log("Dangerously remapping `" . TypeMap::parseType($type, false) . "` as `$alt` in {$this->name}()", Loggable::WARNING);
+            }
+        }
+
         return $doc->asString(1) .
-            "$this->access " . ($this->static ? "static " : "") . "function $this->name(" . join(", ", $params) . ")" . PHP_EOL .
+            "$this->access " . ($this->static ? "static " : "") . "function $this->name(" . join(", ", $params) . "):" . ($remap[$this->returnType->getType()] ?? TypeMap::parseType($this->returnType->getType(), false)) . PHP_EOL .
             "{" . PHP_EOL .
-            $this->body . PHP_EOL .
+            $body . PHP_EOL .
         "}" . PHP_EOL;
     }
 
-    public function asJavascriptStyleImplementation(): string
+    /**
+     * @param array<string, string> $remap
+     *
+     * @return string
+     */
+    public function asJavascriptStyleImplementation(array $remap = []): string
     {
         $doc = new PHPDoc();
-        $doc->addItem($this->description);
+        if ($this->description) {
+            $doc->addItem($this->description);
+        }
         $optional = true;
         $parameters = [];
         $params = "";
         $body = $this->body;
+
+        $body = $this->body;
+        foreach($remap as $type => $alt) {
+            $newBody = preg_replace("/(\W)(" . TypeMap::parseType($type, false) . ")(\W)/m", "$1$alt$3", $body);
+            if ($newBody !== $body) {
+                $body = $newBody;
+                $this->log("Dangerously remapping `" . TypeMap::parseType($type, false) . "` as `$alt` in {$this->name}()", Loggable::WARNING);
+            }
+        }
+
         if (!empty($this->parameters)) {
             $parametersDoc = [];
             $requestBody = null;
@@ -132,7 +167,7 @@ class Method extends BaseComponent
             if ($requestBody !== null) {
                 /** @var Parameter $requestBody */
                 $doc->addItem($requestBody->asPHPDocParam());
-                $params[] = $requestBody->asDeclaration();
+                $params[] = $requestBody->asDeclaration($remap);
             }
             $params = empty($params) ? "" : join(", ", $params);
 
@@ -148,7 +183,7 @@ class Method extends BaseComponent
         }
         $doc->addItem('@api');
         return $doc->asString(1) .
-            "$this->access " . ($this->static ? "static " : "") . "function $this->name($params)" . PHP_EOL .
+            "$this->access " . ($this->static ? "static " : "") . "function $this->name($params): " . ($remap[$this->returnType->getType()] ?? TypeMap::parseType($this->returnType->getType(), false)) . PHP_EOL .
             "{" . PHP_EOL .
             $body . PHP_EOL .
         "}" . PHP_EOL;
