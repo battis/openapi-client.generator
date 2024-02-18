@@ -8,14 +8,17 @@ use Battis\OpenAPI\Generator\TypeMap;
 class ReturnType extends BaseComponent
 {
     private string $type;
+    
+    private ?string $docType;
 
     private ?string $description;
 
-    public static function from(string $type, ?string $description = null): ReturnType
+    public static function from(string $type, ?string $description = null, ?string $docType = null): ReturnType
     {
         $returnType = new ReturnType();
         $returnType->type = $type;
         $returnType->description = $description;
+        $returnType->docType = $docType;
         return $returnType;
     }
 
@@ -23,14 +26,19 @@ class ReturnType extends BaseComponent
     {
         return $this->type;
     }
+    
+    public function getDocTyoe(): ?string
+    {
+        return $this->docType;
+    }
 
     public function asPHPDocReturn(): string
     {
-        return "@return " . TypeMap::parseType($this->type, true, true) . ($this->description ? " $this->description" : "");
+        return "@return " . TypeMap::parseType($this->docType ?? $this->type, true, true) . ($this->description ? " $this->description" : "");
     }
 
     public function asPHPDocThrows(): string
     {
-        return "@throws " . TypeMap::parseType($this->type, true, true) . ($this->description ? " $this->description" : "");
+        return "@throws " . TypeMap::parseType($this->docType ?? $this->type, true, true) . ($this->description ? " $this->description" : "");
     }
 }

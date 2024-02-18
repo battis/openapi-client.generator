@@ -157,6 +157,11 @@ class EndpointClass extends PHPClass
                     } elseif ($schema instanceof Schema) {
                         $method = $schema->type;
                         $type = (string) $map->$method($schema);
+                        $t = substr($type,0,-2);
+                        $instantiate = substr($type,-2) === '[]' && $map->getClassFromType($t) !== null;
+                        if ($instantiate) {
+                            $class->addUses($t);
+                        }
                     }
                 } else {
                     $type = "void";
@@ -203,9 +208,16 @@ class EndpointClass extends PHPClass
                     $throws[] = ReturnType::from(ArgumentException::class, "if required parameters are not defined");
                 }
 
+                $docType = null;
+                if (substr($type, -2) === '[]') {
+                    $docType = $type;
+                    $type = 'array';
+                }
+                $returnType  = ReturnType::from($type, $resp->description, $docType);
+
                 $method = Method::public(
                     $operation . $operationSuffix,
-                    ReturnType::from($type, $resp->description),
+                    $returnType,
                     $body,
                     $op->description,
                     $params,
@@ -224,7 +236,11 @@ class EndpointClass extends PHPClass
     protected static function instantiate(bool $instantiate, string $type, string $arg): string
     {
         if ($instantiate) {
+            if (substr($type, -2) === '[]') { 
+                return "array_map(fn(\$a) => new ". TypeMap::parseType(substr($type, 0, -2), false) ."(\$a), {$arg})";
+            } else {
             return "new " . TypeMap::parseType($type, false) . "(" . $arg . ")";
+}
         } else {
             return $arg;
         }
@@ -236,7 +252,7 @@ class EndpointClass extends PHPClass
      * @param \cebe\openapi\spec\Operation $operation
      * @param \Battis\OpenAPI\Generator\PHPDoc $doc
      *
-     * @return array{method: string[], path: array<string, string>, query: array<string>string}
+     * @return array{method: string[], path: string[], query: string[]}
      */
     protected static function methodParameters(Operation $operation): array
     {
@@ -263,6 +279,13 @@ class EndpointClass extends PHPClass
     }
 
     /**
+     * Calculate a "normalized" path to the directory containing the class
+     * based on its URL
+     *
+     * The process removes all path parameters from the url:
+     * `/foo/{foo_id}/bar/{bar_id}/{baz}` would normalize to `/foo` for a
+     * class named `Bar`.
+     *
      * @param string $path
      *
      * @return string
