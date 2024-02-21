@@ -47,7 +47,7 @@ class NamespaceCollection extends Loggable
     /**
      * @param bool $recursive
      *
-     * @return Writeable[]
+     * @return Writable[]
      */
     public function getClasses(bool $recursive = false): array
     {

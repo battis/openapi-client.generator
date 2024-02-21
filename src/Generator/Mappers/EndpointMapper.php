@@ -39,8 +39,7 @@ class EndpointMapper extends BaseMapper
 
     public function rootRouterName(): string
     {
-        $sanitize = Sanitize::getInstance();
-        return $sanitize->clean($this->getSpec()->info->title);
+        return "Client";
     }
 
     /**
