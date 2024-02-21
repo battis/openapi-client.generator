@@ -35,7 +35,7 @@ class Router extends Writable
 
         foreach($classes as $c) {
             $propName = "_" . lcfirst($c->getName());
-            $class->addProperty(Property::private($propName, $c->getType(), $c->getDescription()));
+            $class->addProperty(Property::public($propName, $c->getType(), $c->getDescription()));
             $class->addMethod(
                 Method::public(
                     lcfirst($c->getName()),

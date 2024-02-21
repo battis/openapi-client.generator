@@ -65,11 +65,6 @@ class NamespaceCollection extends Loggable
         return strpos($namespace, $this->namespace) === 0;
     }
 
-    public function hasClass(string $type): bool
-    {
-        return $this->getClass($type) !== null;
-    }
-
     public function getClass(string $type): ?Writable
     {
         if ($this->containsNamespace($type)) {
@@ -83,8 +78,8 @@ class NamespaceCollection extends Loggable
                     return null;
                 }
             }
-            if (array_key_exists($type, $this->classes)) {
-                return $this->classes[$type];
+            if (array_key_exists($type, $parent->classes)) {
+                return $parent->classes[$type];
             }
         }
         return null;
@@ -92,7 +87,7 @@ class NamespaceCollection extends Loggable
 
     public function getNamespaceCollection(string $namespace): NamespaceCollection
     {
-        assert($this->containsNamespace($namespace), new GeneratorException("$this->namespace does not contain $namespace"));
+        assert($this->containsNamespace($namespace), new GeneratorException("Namespace $this->namespace does not contain $namespace"));
         $parts = $this->getSubnamespaceParts($namespace);
         $parent = $this;
         foreach($parts as $part) {
@@ -106,9 +101,9 @@ class NamespaceCollection extends Loggable
 
     public function addClass(Writable $class)
     {
-        assert($this->containsNamespace($class->getNamespace(), new GeneratorException("$this->namespace does not contain " . $class->getNamespace())));
+        assert($this->containsNamespace($class->getNamespace(), new GeneratorException("Namespace $this->namespace does not contain " . $class->getNamespace())));
         if ($class->getNamespace() === $this->namespace) {
-            assert(!array_key_exists($class->getType(), $this->classes), new GeneratorException($class->getType() . " already exists in $this->namespace"));
+            assert(!array_key_exists($class->getType(), $this->classes), new GeneratorException('Class ' . $class->getType() . " already exists in namespace $this->namespace"));
             $this->classes[$class->getType()] = $class;
         } else {
             $this->getNamespaceCollection($class->getNamespace())->addClass($class);

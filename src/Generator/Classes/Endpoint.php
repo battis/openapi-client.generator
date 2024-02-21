@@ -14,7 +14,7 @@ use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Method;
 use Battis\PHPGenerator\Method\Parameter;
 use Battis\PHPGenerator\Method\ReturnType;
-use Battis\PHPGenerator\Property as PHPGeneratorProperty;
+use Battis\PHPGenerator\Property;
 use cebe\openapi\spec\Operation;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Reference;
@@ -32,7 +32,7 @@ class Endpoint extends Writable
         $class = new Endpoint();
         $class->description = $pathItem->description;
         $class->baseType = $mapper->getBaseType();
-        $class->addProperty(PHPGeneratorProperty::protectedStatic('url', 'string', null, "\"$url\""));
+        $class->addProperty(Property::protectedStatic('url', 'string', null, "\"$url\""));
         $class->url = $url;
         $class->path = static::normalizePath($path);
         $class->name = $sanitize->clean(basename($class->path));

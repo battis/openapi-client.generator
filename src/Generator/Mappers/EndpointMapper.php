@@ -3,12 +3,14 @@
 namespace Battis\OpenAPI\Generator\Mappers;
 
 use Battis\DataUtilities\Path;
+use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Client\BaseEndpoint;
 use Battis\OpenAPI\Generator\Classes\Endpoint;
 use Battis\OpenAPI\Generator\Classes\NamespaceCollection;
 use Battis\OpenAPI\Generator\Classes\Router;
 use Battis\OpenAPI\Generator\Classes\Writable;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
+use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Sanitize;
 use PhpCsFixer\Tokenizer\Analyzer\Analysis\NamespaceAnalysis;
 
@@ -73,10 +75,11 @@ class EndpointMapper extends BaseMapper
             $sibling = $this->classes->getClass($class->getType());
             if ($sibling !== null) {
                 $sibling->mergeWith($class);
-                $this->log("Merged into " . $class->getType());
+                $this->log("Merged into " . $sibling->getType());
             } else {
                 $this->classes->addClass($class);
                 $this->log("Generated " . $class->getType());
+                assert($this->classes->getClass($class->getType()) !== null);
             }
         }
 
@@ -96,12 +99,15 @@ class EndpointMapper extends BaseMapper
     {
         foreach($namespace->getSubnamespaces() as $sub) {
             $this->generateRouters($sub);
+            $this->log("Routing " . $sub->getNamespace());
             $router = Router::fromClassList($sub->getNamespace(), $sub->getClasses(), $this);
             $sibling = $namespace->getClass($router->getType());
             if ($sibling !== null) {
                 $sibling->mergeWith($router);
+                $this->log("Merged into " . $sibling->getType());
             } else {
                 $namespace->addClass($router);
+                $this->log("Generated " . $router->getType());
             }
         }
     }

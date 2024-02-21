@@ -33,15 +33,15 @@ class Component extends Writable
             if ($property instanceof Reference) {
                 $ref = $property->getReference();
                 $property = $property->resolve();
-                $type = $typeMap->getTypeFromSchema($ref, true, true);
+                $type = $typeMap->getTypeFromSchema($ref);
             }
             /** @var Schema $property (because we just resolved it)*/
 
             $fields[] = $name;
             $method = $property->type;
-            $type ??= (string) $typeMap->$method($property, true);
+            $type ??= (string) $typeMap->$method($property);
             // TODO handle enums
-            $class->addProperty(Property::documentationOnly((string) $name, $type, $property->description));
+            $class->addProperty(Property::public((string) $name, $type, $property->description, null, true));
         }
         $fields = Property::protectedStatic('fields', 'array', null, json_encode($fields, JSON_PRETTY_PRINT));
         $fields->setDocType('string[]');

@@ -105,9 +105,6 @@ abstract class BaseMapper extends Loggable
         foreach($this->classes->getClasses(true) as $class) {
             $filePath = Path::join($this->basePath, $class->getPath() . ".php");
             @mkdir(dirname($filePath), 0744, true);
-            if (file_exists($filePath)) {
-                echo "--- EXISTING FILE ---" . PHP_EOL . file_get_contents($filePath) . PHP_EOL . "--- NEW FILE ---" . PHP_EOL . $class . PHP_EOL;
-            }
             assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $class);
             $this->log("Wrote " . $class->getType() . " to $filePath");
