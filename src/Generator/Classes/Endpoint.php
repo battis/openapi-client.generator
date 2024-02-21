@@ -32,7 +32,7 @@ class Endpoint extends Writable
         $class = new Endpoint();
         $class->description = $pathItem->description;
         $class->baseType = $mapper->getBaseType();
-        $class->addProperty(Property::protectedStatic('url', 'string', null, "\"$url\""));
+        $class->addProperty(Property::protected('url', 'string', "Endpoint URL pattern", "\"$url\""));
         $class->url = $url;
         $class->path = static::normalizePath($path);
         $class->name = $sanitize->clean(basename($class->path));

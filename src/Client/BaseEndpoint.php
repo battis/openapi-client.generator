@@ -4,6 +4,7 @@ namespace Battis\OpenAPI\Client;
 
 use Battis\OpenAPI\Client\Client as APIClient;
 use Battis\OpenAPI\Client\Exceptions\ClientException;
+use Battis\OpenAPI\Generator\Classes\Endpoint;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Psr7\Request;
 use JsonSerializable;
@@ -13,7 +14,12 @@ use JsonSerializable;
  */
 abstract class BaseEndpoint extends Mappable
 {
-    protected static string $url = "";
+    protected string $url = "";
+
+    /**
+     * @var array<string, class-string> $endpoints
+     */
+    protected array $endpoints = [];
 
     protected APIClient $api;
     protected ?HttpClient $http = null;
@@ -55,7 +61,7 @@ abstract class BaseEndpoint extends Mappable
 
         $request = new Request(
             $method,
-            str_replace(array_keys($pathParameters), array_values($pathParameters), static::$url) . "?" . http_build_query($queryParameters),
+            str_replace(array_keys($pathParameters), array_values($pathParameters), $this->url) . "?" . http_build_query($queryParameters),
             ['Authentication' => "Bearer $token"],
             $body
         );
@@ -75,5 +81,18 @@ abstract class BaseEndpoint extends Mappable
     protected function decodeResponse(string $response): mixed
     {
         return json_decode($response, true);
+    }
+
+    public function __get($name): ?Endpoint
+    {
+        if (array_key_exists($name, static::$endpoints)) {
+            $instance = "_$name";
+            if (static::$$instance === null) {
+                $class = $this->$endpoints[$name];
+                $this->$$instance = new $class($this->api);
+            }
+            return $this->$$instance;
+        }
+        trigger_error("Undefined property: " . static::class . "::$name", E_USER_WARNING);
     }
 }

@@ -41,7 +41,7 @@ class Component extends Writable
             $method = $property->type;
             $type ??= (string) $typeMap->$method($property);
             // TODO handle enums
-            $class->addProperty(Property::public((string) $name, $type, $property->description, null, true));
+            $class->addProperty(Property::public((string) $name, $type, $property->description, null, $property->nullable, true));
         }
         $fields = Property::protectedStatic('fields', 'array', null, json_encode($fields, JSON_PRETTY_PRINT));
         $fields->setDocType('string[]');

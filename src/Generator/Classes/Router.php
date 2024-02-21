@@ -5,8 +5,6 @@ namespace Battis\OpenAPI\Generator\Classes;
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\TypeMap;
-use Battis\PHPGenerator\Method;
-use Battis\PHPGenerator\Method\ReturnType;
 use Battis\PHPGenerator\Property;
 
 class Router extends Writable
@@ -33,17 +31,41 @@ class Router extends Writable
         }
         $class->path = Path::join($namespaceParts, $class->name);
 
+        $endpoints = Property::protected(
+            'endpoints',
+            'array',
+            "Routing subpaths",
+            "[" . PHP_EOL .
+            "    " . join(
+                "," . PHP_EOL . "    ",
+                array_map(
+                    fn(Writable $c) => "\"" . lcfirst($c->getName()) . "\" => \"" . TypeMap::parseType($c->getType(), true, true) . "\"",
+                    $classes
+                )
+            ) . PHP_EOL . "]"
+        );
+        $endpoints->setDocType("array<string, class-string>");
+        $class->addProperty($endpoints);
+
         foreach($classes as $c) {
             $propName = "_" . lcfirst($c->getName());
-            $class->addProperty(Property::public($propName, $c->getType(), $c->getDescription()));
-            $class->addMethod(
-                Method::public(
+            $class->addProperty(
+                Property::protected(
+                    $propName,
+                    $c->getType(),
+                    $c->getDescription(),
+                    "null",
+                    true
+                )
+            );
+            $class->addProperty(
+                Property::public(
                     lcfirst($c->getName()),
-                    ReturnType::from($c->getType()),
-                    "if (\$this->$propName === null) {" . PHP_EOL .
-                    "\$this->$propName = new " . TypeMap::parseType($c->getType(), false) . "(\$this->api);" . PHP_EOL .
-                    "}" . PHP_EOL .
-                    "return \$this->$propName;"
+                    $c->getType(),
+                    $c->getDescription(),
+                    null,
+                    false,
+                    true
                 )
             );
             $class->uses[] = $c->getType();
