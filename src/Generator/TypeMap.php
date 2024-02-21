@@ -2,13 +2,12 @@
 
 namespace Battis\OpenAPI\Generator;
 
-use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\Classes\Writable;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 
-class TypeMap extends Loggable
+class TypeMap
 {
     protected static ?TypeMap $instance = null;
 

@@ -2,10 +2,9 @@
 
 namespace Battis\OpenAPI\Generator\Classes;
 
-use Battis\Loggable\Loggable;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 
-class NamespaceCollection extends Loggable
+class NamespaceCollection
 {
     /**
      * @var array<string, Writable> $classes
@@ -21,7 +20,6 @@ class NamespaceCollection extends Loggable
 
     public function __construct(string $namespace)
     {
-        parent::__construct();
         assert(!empty($namespace), new GeneratorException('`$namespace` must be defined'));
         $this->namespace = $namespace;
     }

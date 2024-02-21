@@ -2,7 +2,7 @@
 
 namespace Battis\OpenAPI\Generator\Classes;
 
-use Battis\Loggable\Loggable;
+use Battis\OpenAPI\CLI\Logger;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\PHPGenerator\Method;
 use Battis\PHPGenerator\PHPClass;
@@ -37,7 +37,7 @@ abstract class Writable extends PHPClass
                     $base = $extension;
                     $extension = $temp;
                 }
-                Loggable::staticLog("Merging $base and $extension into one endpoint", Loggable::WARNING);
+                Logger::log("Merging $base and $extension into one endpoint", Logger::WARNING);
 
                 $this->removeProperty($thisUrlProp);
                 $other->removeProperty($otherUrlProp);

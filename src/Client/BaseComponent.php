@@ -28,12 +28,14 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
      */
     public function __construct(array $data)
     {
-        parent::__construct();
         $this->data = $data;
         foreach(static::$fields as $property => $type) {
             if (strpos($type, "\\") !== false) {
                 if (strpos($type, "[]") !== false) {
-                    assert(is_array($this->data[$property]), new ClientException("`$property` declared as array ($type)"));
+                    assert(
+                        is_array($this->data[$property]),
+                        new ClientException("`$property` declared as array ($type)")
+                    );
                     $type = preg_replace("/(.+)\\[\\]$/", "$1", $type);
                     for ($i = 0; $i < count($this->data[$property]); $i++) {
                         $this->data[$i] = new $type($this->data[$i]);
@@ -48,7 +50,6 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
     /**
      * @param string $name
      * @return mixed
-     * @throws \Battis\OpenAPI\Client\Exceptions\ClientException if unknown property accessed
      * @api
      */
     public function __get(string $name): mixed
@@ -60,9 +61,7 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
                 return null;
             }
         }
-        throw new ClientException(
-            "Unknown property `$name`",
-        );
+        trigger_error("Undefined property: " . static::class . "::$name", E_USER_WARNING);
     }
 
     /**

@@ -3,14 +3,14 @@
 namespace Battis\OpenAPI\Generator\Mappers;
 
 use Battis\DataUtilities\Path;
-use Battis\Loggable\Loggable;
+use Battis\OpenAPI\CLI\Logger;
 use Battis\OpenAPI\Client\Mappable;
 use Battis\OpenAPI\Generator\Classes\NamespaceCollection;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use cebe\openapi\spec\OpenApi;
 
-abstract class BaseMapper extends Loggable
+abstract class BaseMapper
 {
     public const SPEC = 'spec';
     public const BASE_PATH = 'basePath';
@@ -59,8 +59,6 @@ abstract class BaseMapper extends Loggable
      */
     public function __construct(array $config)
     {
-        parent::__construct();
-
         $this->spec = $config[self::SPEC];
 
         $this->baseType = $config[self::BASE_TYPE];
@@ -107,7 +105,7 @@ abstract class BaseMapper extends Loggable
             @mkdir(dirname($filePath), 0744, true);
             assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
             file_put_contents($filePath, $class);
-            $this->log("Wrote " . $class->getType() . " to $filePath");
+            Logger::log("Wrote " . $class->getType() . " to $filePath");
         }
     }
 }

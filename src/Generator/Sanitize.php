@@ -2,10 +2,9 @@
 
 namespace Battis\OpenAPI\Generator;
 
-use Battis\Loggable\Loggable;
 use sspat\ReservedWords\ReservedWords;
 
-class Sanitize extends Loggable
+class Sanitize
 {
     protected static ?Sanitize $instance = null;
 

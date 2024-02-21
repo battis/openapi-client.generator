@@ -3,6 +3,7 @@
 namespace Battis\OpenAPI\Generator\Mappers;
 
 use Battis\DataUtilities\Path;
+use Battis\OpenAPI\CLI\Logger;
 use Battis\OpenAPI\Client\BaseComponent;
 use Battis\OpenAPI\Generator\Classes\Component;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
@@ -57,7 +58,7 @@ class ComponentMapper extends BaseMapper
             $ref = "#/components/schemas/$name";
             $nameParts = array_map(fn(string $p) => $sanitize->clean($p), explode('.', $name));
             $map->registerSchema($ref, Path::join("\\", [$this->getBaseNamespace(), $nameParts]));
-            $this->log("Mapped $ref => " . $map->getTypeFromSchema($ref));
+            Logger::log("Mapped $ref => " . $map->getTypeFromSchema($ref));
         }
 
         // generate the classes representing all the components defined in the spec
@@ -67,7 +68,7 @@ class ComponentMapper extends BaseMapper
                 /** @var Schema $schema (because we just resolved it)*/
             }
             $class = Component::fromSchema("#/components/schemas/$name", $schema, $this);
-            $this->log("Generated " . $class->getType());
+            Logger::log("Generated " . $class->getType());
             $map->registerClass($class);
             $this->classes->addClass($class);
         }

@@ -28,7 +28,6 @@ abstract class BaseEndpoint extends Mappable
 
     public function __construct(APIClient $api)
     {
-        parent::__construct();
         $this->api = $api;
     }
 
@@ -53,7 +52,10 @@ abstract class BaseEndpoint extends Mappable
         usleep(100000);
 
         $token = $this->api->getToken();
-        assert($token !== null, new ClientException('No valid token available, must interactively authenticate'));
+        assert(
+            $token !== null,
+            new ClientException('No valid token available, must interactively authenticate')
+        );
 
         if ($body instanceof JsonSerializable) {
             $body = json_encode($body) ?: null;
@@ -61,7 +63,11 @@ abstract class BaseEndpoint extends Mappable
 
         $request = new Request(
             $method,
-            str_replace(array_keys($pathParameters), array_values($pathParameters), $this->url) . "?" . http_build_query($queryParameters),
+            str_replace(
+                array_keys($pathParameters),
+                array_values($pathParameters),
+                $this->url
+            ) . "?" . http_build_query($queryParameters),
             ['Authentication' => "Bearer $token"],
             $body
         );
@@ -93,6 +99,9 @@ abstract class BaseEndpoint extends Mappable
             }
             return $this->$$instance;
         }
-        trigger_error("Undefined property: " . static::class . "::$name", E_USER_WARNING);
+        trigger_error(
+            "Undefined property: " . static::class . "::$name",
+            E_USER_WARNING
+        );
     }
 }

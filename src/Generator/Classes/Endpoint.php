@@ -4,7 +4,7 @@ namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
 use Battis\DataUtilities\Text;
-use Battis\Loggable\Loggable;
+use Battis\OpenAPI\CLI\Logger;
 use Battis\OpenAPI\Client\Exceptions\ArgumentException;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
@@ -47,7 +47,7 @@ class Endpoint extends Writable
 
         foreach ($mapper->supportedOperations() as $operation) {
             if ($pathItem->$operation) {
-                Loggable::staticLog(strtoupper($operation) . " " . $url);
+                Logger::log(strtoupper($operation) . " " . $url);
 
                 $instantiate = false;
 
@@ -170,10 +170,6 @@ class Endpoint extends Writable
                     $throws
                 );
                 $class->addMethod($method);
-                $applicableClass = $typeMap->getClassFromType($method->getReturnType()->getType());
-                if ($applicableClass !== null) {
-                    Loggable::staticLog("Potential to map " . $class->getType() . "::" . $method->getName() . "() as a static getter for " . $applicableClass->getType(), Loggable::NOTICE);
-                }
             }
         }
         return $class;

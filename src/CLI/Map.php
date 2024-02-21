@@ -4,11 +4,14 @@ namespace Battis\OpenAPI\CLI;
 
 use Battis\DataUtilities\Filesystem;
 use Battis\DataUtilities\Path;
-use Battis\Loggable\Loggable;
+use Battis\OpenAPI\CLI\Logger;
 use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
 use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\Specification;
 use cebe\openapi\spec\OpenApi;
+use Monolog\Handler\ErrorLogHandler;
+use Monolog;
+use pahanini\Monolog\Formatter\CliFormatter;
 use Psr\Log\LoggerInterface;
 use splitbrain\phpcli\CLI;
 use splitbrain\phpcli\Options;
@@ -18,7 +21,13 @@ class Map extends CLI
     public function __construct(?LoggerInterface $logger = null)
     {
         parent::__construct();
-        Loggable::init($logger);
+        if ($logger === null) {
+            $logger = new Monolog\Logger('console');
+            $handler = new ErrorLogHandler();
+            $handler->setFormatter(new CliFormatter());
+            $logger->pushHandler($handler);
+        }
+        Logger::init($logger);
     }
 
     protected function setup(Options $options)
@@ -38,11 +47,11 @@ class Map extends CLI
 
     protected function scanPath(string $path, string $basePath, string $baseNamespace, bool $delete = false): void
     {
-        Loggable::staticLog("Scanning $path");
+        Logger::log("Scanning $path");
         foreach(scandir($path) as $item) {
             $specPath = Path::join($path, $item);
             if (preg_match("/.*\\.(json|ya?ml)/i", $item)) {
-                Loggable::staticLog("Parsing $specPath");
+                Logger::log("Parsing $specPath");
                 $spec = Specification::from($specPath);
                 $this->generateMapping(
                     $spec,
@@ -69,13 +78,13 @@ class Map extends CLI
     public function cleanup(string $path): void
     {
         if (file_exists($path)) {
-            Loggable::staticLog("Deleting contents of $path", Loggable::WARNING);
+            Logger::log("Deleting contents of $path", Logger::WARNING);
             foreach(Filesystem::safeScandir($path) as $item) {
                 $filePath = Path::join($path, $item);
                 if(FileSystem::delete($filePath, true)) {
-                    Loggable::staticLog("$filePath deleted", Loggable::WARNING);
+                    Logger::log("$filePath deleted", Logger::WARNING);
                 } else {
-                    Loggable::staticLog("Error deleting $filePath", Loggable::ERROR);
+                    Logger::log("Error deleting $filePath", Logger::ERROR);
                 }
             }
         }
@@ -91,7 +100,7 @@ class Map extends CLI
         $components = new ComponentMapper($config);
         $endpoints = new EndpointMapper($config);
 
-        // generate the PHP classes in memmory
+        // generate the PHP classes in memory
         $components->generate();
         $endpoints->generate();
 
