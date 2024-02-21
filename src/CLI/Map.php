@@ -83,26 +83,28 @@ class Map extends CLI
 
     protected function generateMapping(OpenApi $spec, string $basePath, string $baseNamespace, bool $cleanup = false): void
     {
-        $components = new ComponentMapper([
+        $config = [
             'spec' => $spec,
             'basePath' => $basePath,
             'baseNamespace' => $baseNamespace,
-        ]);
-        $components->generate();
+        ];
+        $components = new ComponentMapper($config);
+        $endpoints = new EndpointMapper($config);
 
-        $endpoints = new EndpointMapper([
-            'spec' => $spec,
-            'basePath' => $basePath,
-            'baseNamespace' => $baseNamespace,
-        ]);
+        // generate the PHP classes in memmory
+        $components->generate();
         $endpoints->generate();
 
+        // clean up last run if requested
         if ($cleanup) {
             $this->cleanup($basePath);
         }
 
+        // write the PHP classes from memory to disk -- will not overwrite existing files
         $components->writeFiles();
         $endpoints->writeFiles();
+
+        // tidy up the PHP to make it all pretty
         shell_exec(Path::join(getcwd(), '/vendor/bin/php-cs-fixer') . " fix " . $basePath);
     }
 }

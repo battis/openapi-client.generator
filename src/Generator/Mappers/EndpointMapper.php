@@ -5,17 +5,18 @@ namespace Battis\OpenAPI\Generator\Mappers;
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Client\BaseEndpoint;
 use Battis\OpenAPI\Generator\Classes\Endpoint;
+use Battis\OpenAPI\Generator\Classes\NamespaceCollection;
 use Battis\OpenAPI\Generator\Classes\Router;
+use Battis\OpenAPI\Generator\Classes\Writable;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Sanitize;
+use PhpCsFixer\Tokenizer\Analyzer\Analysis\NamespaceAnalysis;
 
 /**
  * @api
  */
 class EndpointMapper extends BaseMapper
 {
-    private string $name;
-
     /**
      * @return string[]
      */
@@ -64,27 +65,43 @@ class EndpointMapper extends BaseMapper
 
     public function generate(): void
     {
-        $namespaces = [];
+        // generate endpoint classes
         foreach ($this->getSpec()->paths as $path => $pathItem) {
             $path = (string) $path;
             $url = Path::join($this->getSpec()->servers[0]->url, $path);
             $class = Endpoint::fromPathItem($path, $pathItem, $this, $url);
-            if (array_key_exists($class->getType(), $this->classes)) {
-                $this->classes[$class->getType()]->mergeWith($class);
+            $sibling = $this->classes->getClass($class->getType());
+            if ($sibling !== null) {
+                $sibling->mergeWith($class);
                 $this->log("Merged into " . $class->getType());
             } else {
-                $this->classes[$class->getType()] = $class;
-                $namespaces[$class->getNamespace()][] = $class;
+                $this->classes->addClass($class);
                 $this->log("Generated " . $class->getType());
             }
         }
 
-        foreach($namespaces as $namespace => $classes) {
-            $class = Router::fromClassList($namespace, $classes, $this);
-            if (array_key_exists($class->getType(), $this->classes)) {
-                $this->classes[$class->getType()]->mergeWith($class);
+        // generate router classes to group endpoints conveniently
+        $this->generateRouters($this->classes);
+        $parts = explode("\\", $this->getBaseNamespace());
+        array_pop($parts);
+        $collection = new NamespaceCollection(join("\\", $parts));
+        $collection->addClass(Router::fromClassList($this->getBaseNamespace(), $this->classes->getClasses(), $this));
+        foreach($this->classes->getClasses(true) as $class) {
+            $collection->addClass($class);
+        }
+        $this->classes = $collection;
+    }
+
+    private function generateRouters(NamespaceCollection $namespace)
+    {
+        foreach($namespace->getSubnamespaces() as $sub) {
+            $this->generateRouters($sub);
+            $router = Router::fromClassList($sub->getNamespace(), $sub->getClasses(), $this);
+            $sibling = $namespace->getClass($router->getType());
+            if ($sibling !== null) {
+                $sibling->mergeWith($router);
             } else {
-                $this->classes[$class->getType()] = $class;
+                $namespace->addClass($router);
             }
         }
     }

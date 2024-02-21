@@ -52,6 +52,7 @@ class ComponentMapper extends BaseMapper
             new SchemaException("#/components/schemas not defined")
         );
 
+        // pre-map all the schemas to FQN class names
         foreach (array_keys($this->getSpec()->components->schemas) as $name) {
             $ref = "#/components/schemas/$name";
             $nameParts = array_map(fn(string $p) => $sanitize->clean($p), explode('.', $name));
@@ -59,6 +60,7 @@ class ComponentMapper extends BaseMapper
             $this->log("Mapped $ref => " . $map->getTypeFromSchema($ref));
         }
 
+        // generate the classes representing all the components defined in the spec
         foreach ($this->getSpec()->components->schemas as $name => $schema) {
             if ($schema instanceof Reference) {
                 $schema = $schema->resolve();
@@ -67,7 +69,7 @@ class ComponentMapper extends BaseMapper
             $class = Component::fromSchema("#/components/schemas/$name", $schema, $this);
             $this->log("Generated " . $class->getType());
             $map->registerClass($class);
-            $this->classes[$name] = $class;
+            $this->classes->addClass($class);
         }
     }
 }
