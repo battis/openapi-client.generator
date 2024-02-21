@@ -41,7 +41,7 @@ class Component extends Writable
             $type ??= (string) $typeMap->$method($property);
             // TODO handle enums
             $class->addProperty(Property::public((string) $name, $type, $property->description, null, $property->nullable, true));
-            $fields[] = "\"$name\" => \"" . TypeMap::parseType($type, true, true) . "\"";
+            $fields[] = "\"$name\" => \"" . Property::typeAs($type, Property::TYPE_ABSOLUTE) . "\"";
         }
         $fields = Property::protectedStatic('fields', 'array', null, "[" . PHP_EOL . "    " . join("," . PHP_EOL . "    ", $fields) . PHP_EOL . "]");
         $fields->setDocType('string[]');

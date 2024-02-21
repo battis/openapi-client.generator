@@ -19,6 +19,16 @@ abstract class Writable extends PHPClass
 
     public function mergeWith(Writable $other)
     {
+        assert($this->namespace === $other->namespace, new GeneratorException("Namespace mismatch in merge: $this->namespace and $other->namespace"));
+        
+        if ($this->baseType !== $other->baseType) {
+            if (is_a($other->baseType, $this->baseType)) {
+                $this->baseType = $other->baseType;
+            } else if (!is_a($this->baseType, $other->baseType)) {
+                throw new GeneratorException("Incompatible base types in merge: $this->baseType and $other->baseType");
+            }
+        }
+        
         // merge $url properties, taking longest one
         $thisUrlProps = array_filter($this->properties, fn(Property $prop) => $prop->getName() === 'url');
         $thisUrlProp = $thisUrlProps[0] ?? null;
@@ -59,6 +69,7 @@ abstract class Writable extends PHPClass
         $duplicateMethods = array_intersect($thisMethods, $otherMethods);
         assert(count($duplicateMethods) === 0, new GeneratorException("Duplicate methods in merge: " . var_export($duplicateMethods, true)));
 
+        $this->description = join(PHP_EOL, [$this->description, $other->description]);
         $this->uses = array_merge($this->uses, $other->uses);
         $this->properties = array_merge($this->properties, $other->properties);
         $this->methods = array_merge($this->methods, $other->methods);

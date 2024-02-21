@@ -5,6 +5,7 @@ namespace Battis\OpenAPI\CLI;
 use Battis\DataUtilities\Filesystem;
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\CLI\Logger;
+use Battis\OpenAPI\Generator\Mappers\BaseMapper;
 use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
 use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\Specification;
@@ -79,12 +80,14 @@ class Map extends CLI
     {
         if (file_exists($path)) {
             Logger::log("Deleting contents of $path", Logger::WARNING);
-            foreach(Filesystem::safeScandir($path) as $item) {
-                $filePath = Path::join($path, $item);
-                if(FileSystem::delete($filePath, true)) {
-                    Logger::log("$filePath deleted", Logger::WARNING);
-                } else {
-                    Logger::log("Error deleting $filePath", Logger::ERROR);
+            if (file_exists($path)) {
+                foreach(Filesystem::safeScandir($path) as $item) {
+                    $filePath = Path::join($path, $item);
+                    if(FileSystem::delete($filePath, true)) {
+                        Logger::log("$filePath deleted", Logger::WARNING);
+                    } else {
+                        Logger::log("Error deleting $filePath", Logger::ERROR);
+                    }
                 }
             }
         }
@@ -93,9 +96,9 @@ class Map extends CLI
     protected function generateMapping(OpenApi $spec, string $basePath, string $baseNamespace, bool $cleanup = false): void
     {
         $config = [
-            'spec' => $spec,
-            'basePath' => $basePath,
-            'baseNamespace' => $baseNamespace,
+            BaseMapper::SPEC => $spec,
+            BaseMapper::BASE_PATH => $basePath,
+            BaseMapper::BASE_NAMESPACE => $baseNamespace,
         ];
         $components = new ComponentMapper($config);
         $endpoints = new EndpointMapper($config);

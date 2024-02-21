@@ -179,9 +179,9 @@ class Endpoint extends Writable
     {
         if ($instantiate) {
             if (substr($type, -2) === '[]') {
-                return "array_map(fn(\$a) => new " . TypeMap::parseType(substr($type, 0, -2), false) . "(\$a), {$arg})";
+                return "array_map(fn(\$a) => new " . Property::typeAs(substr($type, 0, -2), Property::TYPE_SHORT) . "(\$a), {$arg})";
             } else {
-                return "new " . TypeMap::parseType($type, false) . "(" . $arg . ")";
+                return "new " . Property::typeAs($type, Property::TYPE_SHORT) . "(" . $arg . ")";
             }
         } else {
             return $arg;

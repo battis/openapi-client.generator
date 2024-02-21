@@ -84,20 +84,6 @@ abstract class BaseMapper
      */
     abstract public function generate(): void;
 
-    public function parseFilePath(string $path): string
-    {
-        return Path::join($this->basePath, "$path.php");
-    }
-
-    public function parseType(string $path = null): string
-    {
-        $parts = [$this->baseNamespace];
-        if ($path !== null) {
-            $parts[ ] = str_replace("/", "\\", $path);
-        }
-        return Path::join("\\", $parts);
-    }
-
     public function writeFiles(): void
     {
         foreach($this->classes->getClasses(true) as $class) {

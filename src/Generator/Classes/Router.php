@@ -4,7 +4,6 @@ namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
-use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Property;
 
 class Router extends Writable
@@ -39,7 +38,7 @@ class Router extends Writable
             "    " . join(
                 "," . PHP_EOL . "    ",
                 array_map(
-                    fn(Writable $c) => "\"" . lcfirst($c->getName()) . "\" => \"" . TypeMap::parseType($c->getType(), true, true) . "\"",
+                    fn(Writable $c) => "\"" . lcfirst($c->getName()) . "\" => \"" . Property::typeAs($c->getType(), Property::TYPE_ABSOLUTE) . "\"",
                     $classes
                 )
             ) . PHP_EOL . "]"

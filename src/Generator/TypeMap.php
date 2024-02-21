@@ -39,34 +39,14 @@ class TypeMap
         $this->typeToClass[$class->getType()] = $class;
     }
 
-    public function getTypeFromSchema(
-        string $ref,
-        bool $fqn = true,
-        bool $absolute = false
-    ): ?string {
-        $type = $this->schemaToType[$ref] ?? null;
-        if ($type !== null) {
-            $type = self::parseType($type, $fqn, $absolute);
-        }
-        return $type;
+    public function getTypeFromSchema(string $ref): ?string
+    {
+        return $this->schemaToType[$ref] ?? null;
     }
 
     public function getClassFromType(string $type): ?Writable
     {
         return $this->typeToClass[$type] ?? null;
-    }
-
-    public static function parseType(string $type, bool $fqn = true, bool $absolute = false): string
-    {
-        if ($fqn) {
-            $t = preg_replace("/(.+)\\[\]$/", "$1", $type);
-            if ($absolute && !in_array($t, ['void', 'null','bool','int','float','string','array','object','callable','resource'])) {
-                $type = "\\" . $type;
-            }
-        } else {
-            $type = preg_replace("/^.+\\\\([^\\\\]+)$/", "$1", $type);
-        }
-        return $type;
     }
 
     /**
