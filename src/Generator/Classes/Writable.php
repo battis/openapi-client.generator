@@ -19,21 +19,34 @@ abstract class Writable extends PHPClass
 
     public function mergeWith(Writable $other)
     {
-        assert($this->namespace === $other->namespace, new GeneratorException("Namespace mismatch in merge: $this->namespace and $other->namespace"));
-        
+        assert(
+            $this->namespace === $other->namespace,
+            new GeneratorException(
+                "Namespace mismatch in merge: $this->namespace and $other->namespace"
+            )
+        );
+
         if ($this->baseType !== $other->baseType) {
             if (is_a($other->baseType, $this->baseType)) {
                 $this->baseType = $other->baseType;
-            } else if (!is_a($this->baseType, $other->baseType)) {
-                throw new GeneratorException("Incompatible base types in merge: $this->baseType and $other->baseType");
+            } elseif (!is_a($this->baseType, $other->baseType)) {
+                throw new GeneratorException(
+                    "Incompatible base types in merge: $this->baseType and $other->baseType"
+                );
             }
         }
-        
+
         // merge $url properties, taking longest one
-        $thisUrlProps = array_filter($this->properties, fn(Property $prop) => $prop->getName() === 'url');
+        $thisUrlProps = array_filter(
+            $this->properties,
+            fn(Property $prop) => $prop->getName() === "url"
+        );
         $thisUrlProp = $thisUrlProps[0] ?? null;
 
-        $otherUrlProps = array_filter($other->properties, fn(Property $prop) => $prop->getName() === 'url');
+        $otherUrlProps = array_filter(
+            $other->properties,
+            fn(Property $prop) => $prop->getName() === "url"
+        );
         $otherUrlProp = $otherUrlProps[0] ?? null;
 
         if ($thisUrlProp && $otherUrlProp) {
@@ -47,29 +60,53 @@ abstract class Writable extends PHPClass
                     $base = $extension;
                     $extension = $temp;
                 }
-                Logger::log("Merging $base and $extension into one endpoint", Logger::WARNING);
+                Logger::log(
+                    "Merging $base and $extension into one endpoint",
+                    Logger::WARNING
+                );
 
                 $this->removeProperty($thisUrlProp);
                 $other->removeProperty($otherUrlProp);
-                $this->addProperty(Property::protectedStatic('url', 'string', null, "\"$extension\""));
+                $this->addProperty(
+                    Property::protectedStatic("url", "string", null, "\"$extension\"")
+                );
             } else {
                 $other->removeProperty($otherUrlProp);
             }
         }
 
         // testing to make sure there are no other duplicate properties
-        $thisProperties = array_map(fn(Property $p) => $p->getName(), $this->properties);
-        $otherProperties = array_map(fn(Property $p) => $p->getName(), $other->properties);
+        $thisProperties = array_map(
+            fn(Property $p) => $p->getName(),
+            $this->properties
+        );
+        $otherProperties = array_map(
+            fn(Property $p) => $p->getName(),
+            $other->properties
+        );
         $duplicateProperties = array_intersect($thisProperties, $otherProperties);
-        assert(count($duplicateProperties) === 0, new GeneratorException("Duplicate properties in merge: " . var_export($duplicateProperties, true)));
-
+        assert(
+            count($duplicateProperties) === 0,
+            new GeneratorException(
+                "Duplicate properties in merge: " .
+                var_export($duplicateProperties, true)
+            )
+        );
 
         $thisMethods = array_map(fn(Method $m) => $m->getName(), $this->methods);
         $otherMethods = array_map(fn(Method $m) => $m->getName(), $other->methods);
         $duplicateMethods = array_intersect($thisMethods, $otherMethods);
-        assert(count($duplicateMethods) === 0, new GeneratorException("Duplicate methods in merge: " . var_export($duplicateMethods, true)));
+        assert(
+            count($duplicateMethods) === 0,
+            new GeneratorException(
+                "Duplicate methods in merge: " . var_export($duplicateMethods, true)
+            )
+        );
 
-        $this->description = join(PHP_EOL, [$this->description, $other->description]);
+        $this->description = join(PHP_EOL, [
+          $this->description,
+          $other->description,
+        ]);
         $this->uses = array_merge($this->uses, $other->uses);
         $this->properties = array_merge($this->properties, $other->properties);
         $this->methods = array_merge($this->methods, $other->methods);

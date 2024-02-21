@@ -11,8 +11,11 @@ use cebe\openapi\spec\Schema;
 
 class Component extends Writable
 {
-    public static function fromSchema(string $ref, Schema $schema, ComponentMapper $mapper): Component
-    {
+    public static function fromSchema(
+        string $ref,
+        Schema $schema,
+        ComponentMapper $mapper
+    ): Component {
         $typeMap = TypeMap::getInstance();
 
         $class = new Component();
@@ -21,7 +24,10 @@ class Component extends Writable
         $nameParts = explode("\\", $type);
         $class->name = array_pop($nameParts);
         $class->namespace = Path::join("\\", $nameParts);
-        $nameParts = array_slice($nameParts, count(explode("\\", $mapper->getBaseNamespace())));
+        $nameParts = array_slice(
+            $nameParts,
+            count(explode("\\", $mapper->getBaseNamespace()))
+        );
         $class->path = Path::join($nameParts, $class->name);
 
         $class->baseType = $mapper->getBaseType();
@@ -40,13 +46,34 @@ class Component extends Writable
             $method = $property->type;
             $type ??= (string) $typeMap->$method($property);
             // TODO handle enums
-            $class->addProperty(Property::public((string) $name, $type, $property->description, null, $property->nullable, true));
-            $fields[] = "\"$name\" => \"" . Property::typeAs($type, Property::TYPE_ABSOLUTE) . "\"";
+            $class->addProperty(
+                Property::public(
+                    (string) $name,
+                    $type,
+                    $property->description,
+                    null,
+                    $property->nullable,
+                    true
+                )
+            );
+            $fields[] =
+              "\"$name\" => \"" .
+              Property::typeAs($type, Property::TYPE_ABSOLUTE) .
+              "\"";
         }
-        $fields = Property::protectedStatic('fields', 'array', null, "[" . PHP_EOL . "    " . join("," . PHP_EOL . "    ", $fields) . PHP_EOL . "]");
-        $fields->setDocType('string[]');
+        $fields = Property::protectedStatic(
+            "fields",
+            "array",
+            null,
+            "[" .
+            PHP_EOL .
+            "    " .
+            join("," . PHP_EOL . "    ", $fields) .
+            PHP_EOL .
+            "]"
+        );
+        $fields->setDocType("string[]");
         $class->addProperty($fields);
         return $class;
     }
-
 }

@@ -31,39 +31,33 @@ class Specification
      *
      * @return \cebe\openapi\spec\OpenApi The OpenApi object instance.
      *
-     * @throws \Battis\OpenAPI\Generator\Exceptions\ConfigurationException if the $specification cannot be identified
+     * @throws \Battis\OpenAPI\Generator\Exceptions\ConfigurationException
+     *     if the $specification cannot be identified
      */
-    public static function from(
-        string $specification
-    ): OpenApi {
+    public static function from(string $specification): OpenApi
+    {
         if (preg_match("/\\.json$/i", $specification)) {
             $spec = Reader::readFromJsonFile(
                 Path::canonicalize($specification, getcwd()),
                 OpenApi::class,
-                false,
+                false
             );
         } elseif (preg_match("/\\.ya?ml$/i", $specification)) {
             $spec = Reader::readFromYamlFile(
                 Path::canonicalize($specification, getcwd()),
                 OpenApi::class,
-                false,
+                false
             );
         } elseif (
             json_decode($specification) &&
             json_last_error() === JSON_ERROR_NONE
         ) {
-            $spec = Reader::readFromJson(
-                $specification,
-                OpenApi::class
-            );
+            $spec = Reader::readFromJson($specification, OpenApi::class);
         } elseif (yaml_parse($specification)) {
-            $spec = Reader::readFromYaml(
-                $specification,
-                OpenApi::class
-            );
+            $spec = Reader::readFromYaml($specification, OpenApi::class);
         } else {
             throw new ConfigurationException(
-                "\$specification must be a path to a valid OpenAPI JSON or YAML file, or a literal OpenAPI JSON or YAML string",
+                "\$specification must be a path to a valid OpenAPI JSON or YAML file, or a literal OpenAPI JSON or YAML string"
             );
         }
 

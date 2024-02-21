@@ -20,7 +20,10 @@ class NamespaceCollection
 
     public function __construct(string $namespace)
     {
-        assert(!empty($namespace), new GeneratorException('`$namespace` must be defined'));
+        assert(
+            !empty($namespace),
+            new GeneratorException('`$namespace` must be defined')
+        );
         $this->namespace = $namespace;
     }
 
@@ -51,7 +54,7 @@ class NamespaceCollection
     {
         $result = array_merge($this->classes);
         if ($recursive) {
-            foreach($this->children as $child) {
+            foreach ($this->children as $child) {
                 $result = array_merge($result, $child->getClasses($recursive));
             }
         }
@@ -69,7 +72,7 @@ class NamespaceCollection
             $parts = $this->getSubnamespaceParts($type);
             array_pop($parts); // class name
             $parent = $this;
-            foreach($parts as $part) {
+            foreach ($parts as $part) {
                 if (array_key_exists($part, $parent->children)) {
                     $parent = $parent->children[$part];
                 } else {
@@ -85,12 +88,19 @@ class NamespaceCollection
 
     public function getNamespaceCollection(string $namespace): NamespaceCollection
     {
-        assert($this->containsNamespace($namespace), new GeneratorException("Namespace $this->namespace does not contain $namespace"));
+        assert(
+            $this->containsNamespace($namespace),
+            new GeneratorException(
+                "Namespace $this->namespace does not contain $namespace"
+            )
+        );
         $parts = $this->getSubnamespaceParts($namespace);
         $parent = $this;
-        foreach($parts as $part) {
+        foreach ($parts as $part) {
             if (!array_key_exists($part, $parent->children)) {
-                $parent->children[$part] = new NamespaceCollection($parent->namespace . "\\" . $part);
+                $parent->children[$part] = new NamespaceCollection(
+                    $parent->namespace . "\\" . $part
+                );
             }
             $parent = $parent->children[$part];
         }
@@ -99,9 +109,24 @@ class NamespaceCollection
 
     public function addClass(Writable $class)
     {
-        assert($this->containsNamespace($class->getNamespace(), new GeneratorException("Namespace $this->namespace does not contain " . $class->getNamespace())));
+        assert(
+            $this->containsNamespace(
+                $class->getNamespace(),
+                new GeneratorException(
+                    "Namespace $this->namespace does not contain " .
+                    $class->getNamespace()
+                )
+            )
+        );
         if ($class->getNamespace() === $this->namespace) {
-            assert(!array_key_exists($class->getType(), $this->classes), new GeneratorException('Class ' . $class->getType() . " already exists in namespace $this->namespace"));
+            assert(
+                !array_key_exists($class->getType(), $this->classes),
+                new GeneratorException(
+                    "Class " .
+                    $class->getType() .
+                    " already exists in namespace $this->namespace"
+                )
+            );
             $this->classes[$class->getType()] = $class;
         } else {
             $this->getNamespaceCollection($class->getNamespace())->addClass($class);

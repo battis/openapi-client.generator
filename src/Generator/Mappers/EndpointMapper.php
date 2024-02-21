@@ -20,7 +20,16 @@ class EndpointMapper extends BaseMapper
      */
     public function supportedOperations(): array
     {
-        return ["get", "put", "post", "delete", "options", "head", "patch", "trace"];
+        return [
+          "get",
+          "put",
+          "post",
+          "delete",
+          "options",
+          "head",
+          "patch",
+          "trace",
+        ];
     }
 
     public function expectedContentType(): string
@@ -49,8 +58,14 @@ class EndpointMapper extends BaseMapper
     public function __construct(array $config)
     {
         $config[self::BASE_TYPE] ??= BaseEndpoint::class;
-        $config[self::BASE_PATH] = Path::join($config[self::BASE_PATH], $this->simpleNamespace());
-        $config[self::BASE_NAMESPACE] = Path::join("\\", [$config[self::BASE_NAMESPACE], $this->simpleNamespace()]);
+        $config[self::BASE_PATH] = Path::join(
+            $config[self::BASE_PATH],
+            $this->simpleNamespace()
+        );
+        $config[self::BASE_NAMESPACE] = Path::join("\\", [
+          $config[self::BASE_NAMESPACE],
+          $this->simpleNamespace(),
+        ]);
         parent::__construct($config);
         assert(
             is_a($this->getBaseType(), BaseEndpoint::class, true),
@@ -83,8 +98,14 @@ class EndpointMapper extends BaseMapper
         $parts = explode("\\", $this->getBaseNamespace());
         array_pop($parts);
         $collection = new NamespaceCollection(join("\\", $parts));
-        $collection->addClass(Router::fromClassList($this->getBaseNamespace(), $this->classes->getClasses(), $this));
-        foreach($this->classes->getClasses(true) as $class) {
+        $collection->addClass(
+            Router::fromClassList(
+                $this->getBaseNamespace(),
+                $this->classes->getClasses(),
+                $this
+            )
+        );
+        foreach ($this->classes->getClasses(true) as $class) {
             $collection->addClass($class);
         }
         $this->classes = $collection;
@@ -92,10 +113,14 @@ class EndpointMapper extends BaseMapper
 
     private function generateRouters(NamespaceCollection $namespace)
     {
-        foreach($namespace->getSubnamespaces() as $sub) {
+        foreach ($namespace->getSubnamespaces() as $sub) {
             $this->generateRouters($sub);
             Logger::log("Routing " . $sub->getNamespace());
-            $router = Router::fromClassList($sub->getNamespace(), $sub->getClasses(), $this);
+            $router = Router::fromClassList(
+                $sub->getNamespace(),
+                $sub->getClasses(),
+                $this
+            );
             $sibling = $namespace->getClass($router->getType());
             if ($sibling !== null) {
                 $sibling->mergeWith($router);

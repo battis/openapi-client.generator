@@ -23,7 +23,7 @@ class Map extends CLI
     {
         parent::__construct();
         if ($logger === null) {
-            $logger = new Monolog\Logger('console');
+            $logger = new Monolog\Logger("console");
             $handler = new ErrorLogHandler();
             $handler->setFormatter(new CliFormatter());
             $logger->pushHandler($handler);
@@ -33,23 +33,44 @@ class Map extends CLI
 
     protected function setup(Options $options)
     {
-        $options->registerOption('delete-previous', 'Delete previous mapping', 'd');
-        $options->registerArgument('OpenAPI-spec', 'The path to an OpenAPI YAML or JSON file', true);
-        $options->registerArgument('map-dest', 'The path where the mapping should be generated', true);
-        $options->registerArgument('namespace', 'The namespace within which the mapping should be generated', true);
+        $options->registerOption("delete-previous", "Delete previous mapping", "d");
+        $options->registerArgument(
+            "OpenAPI-spec",
+            "The path to an OpenAPI YAML or JSON file",
+            true
+        );
+        $options->registerArgument(
+            "map-dest",
+            "The path where the mapping should be generated",
+            true
+        );
+        $options->registerArgument(
+            "namespace",
+            "The namespace within which the mapping should be generated",
+            true
+        );
     }
 
     protected function main(Options $options)
     {
         /** @var string[] $args */
         $args = $options->getArgs();
-        $this->scanPath($args[0], $args[1], $args[2], (bool) $options->getOpt('delete-previous', false));
+        $this->scanPath(
+            $args[0],
+            $args[1],
+            $args[2],
+            (bool) $options->getOpt("delete-previous", false)
+        );
     }
 
-    protected function scanPath(string $path, string $basePath, string $baseNamespace, bool $delete = false): void
-    {
+    protected function scanPath(
+        string $path,
+        string $basePath,
+        string $baseNamespace,
+        bool $delete = false
+    ): void {
         Logger::log("Scanning $path");
-        foreach(scandir($path) as $item) {
+        foreach (scandir($path) as $item) {
             $specPath = Path::join($path, $item);
             if (preg_match("/.*\\.(json|ya?ml)/i", $item)) {
                 Logger::log("Parsing $specPath");
@@ -60,19 +81,25 @@ class Map extends CLI
                     $this->getNamespaceFromSpec($specPath, $spec, $baseNamespace),
                     $delete
                 );
-            } elseif ($item !== '.' && $item !== '..' && is_dir($specPath)) {
+            } elseif ($item !== "." && $item !== ".." && is_dir($specPath)) {
                 $this->scanPath($specPath, $basePath, $baseNamespace, $delete);
             }
         }
     }
 
-    protected function getBasePathFromSpec(string $specPath, OpenApi $spec, string $basePath): string
-    {
+    protected function getBasePathFromSpec(
+        string $specPath,
+        OpenApi $spec,
+        string $basePath
+    ): string {
         return $basePath;
     }
 
-    protected function getNamespaceFromSpec(string $specPath, OpenApi $spec, string $baseNamespace): string
-    {
+    protected function getNamespaceFromSpec(
+        string $specPath,
+        OpenApi $spec,
+        string $baseNamespace
+    ): string {
         return $baseNamespace;
     }
 
@@ -81,9 +108,9 @@ class Map extends CLI
         if (file_exists($path)) {
             Logger::log("Deleting contents of $path", Logger::WARNING);
             if (file_exists($path)) {
-                foreach(Filesystem::safeScandir($path) as $item) {
+                foreach (Filesystem::safeScandir($path) as $item) {
                     $filePath = Path::join($path, $item);
-                    if(FileSystem::delete($filePath, true)) {
+                    if (FileSystem::delete($filePath, true)) {
                         Logger::log("$filePath deleted", Logger::WARNING);
                     } else {
                         Logger::log("Error deleting $filePath", Logger::ERROR);
@@ -93,12 +120,16 @@ class Map extends CLI
         }
     }
 
-    protected function generateMapping(OpenApi $spec, string $basePath, string $baseNamespace, bool $cleanup = false): void
-    {
+    protected function generateMapping(
+        OpenApi $spec,
+        string $basePath,
+        string $baseNamespace,
+        bool $cleanup = false
+    ): void {
         $config = [
-            BaseMapper::SPEC => $spec,
-            BaseMapper::BASE_PATH => $basePath,
-            BaseMapper::BASE_NAMESPACE => $baseNamespace,
+          BaseMapper::SPEC => $spec,
+          BaseMapper::BASE_PATH => $basePath,
+          BaseMapper::BASE_NAMESPACE => $baseNamespace,
         ];
         $components = new ComponentMapper($config);
         $endpoints = new EndpointMapper($config);
@@ -117,6 +148,8 @@ class Map extends CLI
         $endpoints->writeFiles();
 
         // tidy up the PHP to make it all pretty
-        shell_exec(Path::join(getcwd(), '/vendor/bin/php-cs-fixer') . " fix " . $basePath);
+        shell_exec(
+            Path::join(getcwd(), "/vendor/bin/php-cs-fixer") . " fix " . $basePath
+        );
     }
 }

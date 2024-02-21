@@ -29,7 +29,7 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
     public function __construct(array $data)
     {
         $this->data = $data;
-        foreach(static::$fields as $property => $type) {
+        foreach (static::$fields as $property => $type) {
             if (strpos($type, "\\") !== false) {
                 if (strpos($type, "[]") !== false) {
                     assert(
@@ -61,7 +61,10 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
                 return null;
             }
         }
-        trigger_error("Undefined property: " . static::class . "::$name", E_USER_WARNING);
+        trigger_error(
+            "Undefined property: " . static::class . "::$name",
+            E_USER_WARNING
+        );
     }
 
     /**

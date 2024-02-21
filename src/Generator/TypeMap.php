@@ -79,8 +79,8 @@ class TypeMap
     public function number(Schema $elt): string
     {
         $type = empty($elt->format) ? "float" : $elt->format;
-        if ($type === 'double') {
-            $type = 'float';
+        if ($type === "double") {
+            $type = "float";
         }
         return $type;
     }
@@ -110,8 +110,11 @@ class TypeMap
             new SchemaException("array spec $elt->title missing items spec")
         );
         if ($elt->items instanceof Reference) {
-            return (string) $this->getTypeFromSchema($elt->items->getReference(), true, $absolute) .
-              "[]";
+            return (string) $this->getTypeFromSchema(
+                $elt->items->getReference(),
+                true,
+                $absolute
+            ) . "[]";
         }
         $method = $elt->items->type;
         return (string) $this->$method($elt->items, $absolute) . "[]";

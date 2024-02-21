@@ -34,12 +34,20 @@ class ComponentMapper extends BaseMapper
     public function __construct($config)
     {
         $config[self::BASE_TYPE] ??= BaseComponent::class;
-        $config[self::BASE_PATH] = Path::join($config[self::BASE_PATH], $this->simpleNamespace());
-        $config[self::BASE_NAMESPACE] = Path::join("\\", [$config[self::BASE_NAMESPACE], $this->simpleNamespace()]);
+        $config[self::BASE_PATH] = Path::join(
+            $config[self::BASE_PATH],
+            $this->simpleNamespace()
+        );
+        $config[self::BASE_NAMESPACE] = Path::join("\\", [
+          $config[self::BASE_NAMESPACE],
+          $this->simpleNamespace(),
+        ]);
         parent::__construct($config);
         assert(
             is_a($this->getBaseType(), BaseComponent::class, true),
-            new ConfigurationException("`" . self::BASE_TYPE . "` must be instance of " . BaseComponent::class)
+            new ConfigurationException(
+                "`" . self::BASE_TYPE . "` must be instance of " . BaseComponent::class
+            )
         );
     }
 
@@ -56,8 +64,14 @@ class ComponentMapper extends BaseMapper
         // pre-map all the schemas to FQN class names
         foreach (array_keys($this->getSpec()->components->schemas) as $name) {
             $ref = "#/components/schemas/$name";
-            $nameParts = array_map(fn(string $p) => $sanitize->clean($p), explode('.', $name));
-            $map->registerSchema($ref, Path::join("\\", [$this->getBaseNamespace(), $nameParts]));
+            $nameParts = array_map(
+                fn(string $p) => $sanitize->clean($p),
+                explode(".", $name)
+            );
+            $map->registerSchema(
+                $ref,
+                Path::join("\\", [$this->getBaseNamespace(), $nameParts])
+            );
             Logger::log("Mapped $ref => " . $map->getTypeFromSchema($ref));
         }
 
@@ -67,7 +81,11 @@ class ComponentMapper extends BaseMapper
                 $schema = $schema->resolve();
                 /** @var Schema $schema (because we just resolved it)*/
             }
-            $class = Component::fromSchema("#/components/schemas/$name", $schema, $this);
+            $class = Component::fromSchema(
+                "#/components/schemas/$name",
+                $schema,
+                $this
+            );
             Logger::log("Generated " . $class->getType());
             $map->registerClass($class);
             $this->classes->addClass($class);

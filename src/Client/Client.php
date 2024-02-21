@@ -76,7 +76,9 @@ class Client
                         unset($_SESSION[self::OAuth2_STATE]);
                     }
 
-                    throw new ClientException(var_export(["error" => "invalid state"], true));
+                    throw new ClientException(
+                        var_export(["error" => "invalid state"], true)
+                    );
                 } else {
                     $token = $this->api->getAccessToken(self::AUTHORIZATION_CODE, [
                       self::CODE => $_GET[self::CODE],

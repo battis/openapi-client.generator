@@ -12,8 +12,11 @@ class Router extends Writable
      * @param string $namespace
      * @param EndpointClass[] $classes
      */
-    public static function fromClassList(string $namespace, array $classes, EndpointMapper $mapper): Router
-    {
+    public static function fromClassList(
+        string $namespace,
+        array $classes,
+        EndpointMapper $mapper
+    ): Router {
         $class = new Router();
         $class->baseType = $mapper->getBaseType();
         $class->description = "Routing class for the namespace $namespace";
@@ -26,27 +29,38 @@ class Router extends Writable
             $namespaceParts = "..";
             $class->name = $mapper->rootRouterName();
         } else {
-            $namespaceParts = array_slice($namespaceParts, count($baseNamespaceParts));
+            $namespaceParts = array_slice(
+                $namespaceParts,
+                count($baseNamespaceParts)
+            );
         }
         $class->path = Path::join($namespaceParts, $class->name);
 
         $endpoints = Property::protected(
-            'endpoints',
-            'array',
+            "endpoints",
+            "array",
             "Routing subpaths",
-            "[" . PHP_EOL .
-            "    " . join(
+            "[" .
+            PHP_EOL .
+            "    " .
+            join(
                 "," . PHP_EOL . "    ",
                 array_map(
-                    fn(Writable $c) => "\"" . lcfirst($c->getName()) . "\" => \"" . Property::typeAs($c->getType(), Property::TYPE_ABSOLUTE) . "\"",
+                    fn(Writable $c) => "\"" .
+                    lcfirst($c->getName()) .
+                    "\" => \"" .
+                    Property::typeAs($c->getType(), Property::TYPE_ABSOLUTE) .
+                    "\"",
                     $classes
                 )
-            ) . PHP_EOL . "]"
+            ) .
+            PHP_EOL .
+            "]"
         );
         $endpoints->setDocType("array<string, class-string>");
         $class->addProperty($endpoints);
 
-        foreach($classes as $c) {
+        foreach ($classes as $c) {
             $propName = "_" . lcfirst($c->getName());
             $class->addProperty(
                 Property::protected(

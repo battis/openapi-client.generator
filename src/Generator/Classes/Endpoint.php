@@ -24,15 +24,21 @@ class Endpoint extends Writable
 {
     protected string $url;
 
-    public static function fromPathItem(string $path, PathItem $pathItem, EndpointMapper $mapper, string $url): Endpoint
-    {
+    public static function fromPathItem(
+        string $path,
+        PathItem $pathItem,
+        EndpointMapper $mapper,
+        string $url
+    ): Endpoint {
         $typeMap = TypeMap::getInstance();
         $sanitize = Sanitize::getInstance();
 
         $class = new Endpoint();
         $class->description = $pathItem->description;
         $class->baseType = $mapper->getBaseType();
-        $class->addProperty(Property::protected('url', 'string', "Endpoint URL pattern", "\"$url\""));
+        $class->addProperty(
+            Property::protected("url", "string", "Endpoint URL pattern", "\"$url\"")
+        );
         $class->url = $url;
         $class->path = static::normalizePath($path);
         $class->name = $sanitize->clean(basename($class->path));
@@ -40,10 +46,19 @@ class Endpoint extends Writable
         if ($dir === "." || $dir === "/") {
             $dir = null;
         }
-        $class->namespace = Path::join("\\", [$mapper->getBaseNamespace(), $dir === null ? [] : explode("/", $dir)]);
+        $class->namespace = Path::join("\\", [
+          $mapper->getBaseNamespace(),
+          $dir === null ? [] : explode("/", $dir),
+        ]);
 
         preg_match_all("/\{([^}]+)\}\//", $class->url, $match, PREG_PATTERN_ORDER);
-        $operationSuffix = Text::snake_case_to_PascalCase((!empty($match[1]) ? "by_" : "") . join("_and_", array_map(fn(string $p) => str_replace("_id", "", $p), $match[1])));
+        $operationSuffix = Text::snake_case_to_PascalCase(
+            (!empty($match[1]) ? "by_" : "") .
+            join(
+                "_and_",
+                array_map(fn(string $p) => str_replace("_id", "", $p), $match[1])
+            )
+        );
 
         foreach ($mapper->supportedOperations() as $operation) {
             if ($pathItem->$operation) {
@@ -64,17 +79,23 @@ class Endpoint extends Writable
                 $requestBody = $op->requestBody;
                 if ($requestBody !== null) {
                     $docType = null;
-                    $schema = $requestBody->content[$mapper->expectedContentType()]->schema;
+                    $schema =
+                      $requestBody->content[$mapper->expectedContentType()]->schema;
                     $type = null;
                     if ($schema instanceof Reference) {
                         $type = $typeMap->getTypeFromSchema($schema->getReference());
                         $class->addUses($type);
-                    } else { /** @var Schema $schema */
+                    } else {
+                        /** @var Schema $schema */
                         $method = $schema->type;
                         $type = $schema->type;
                         $docType = $typeMap->$method($schema, true);
                     }
-                    $requestBody = Parameter::from('requestBody', $type, $requestBody->description);
+                    $requestBody = Parameter::from(
+                        "requestBody",
+                        $type,
+                        $requestBody->description
+                    );
                     if ($docType !== null) {
                         $requestBody->setDocType($docType);
                     }
@@ -104,7 +125,9 @@ class Endpoint extends Writable
                         $method = $schema->type;
                         $type = (string) $typeMap->$method($schema);
                         $t = substr($type, 0, -2);
-                        $instantiate = substr($type, -2) === '[]' && $typeMap->getClassFromType($t) !== null;
+                        $instantiate =
+                          substr($type, -2) === "[]" &&
+                          $typeMap->getClassFromType($t) !== null;
                         if ($instantiate) {
                             $class->addUses($t);
                         }
@@ -112,38 +135,80 @@ class Endpoint extends Writable
                 } else {
                     $type = "void";
                 }
-                assert(is_string($type), new GeneratorException('type undefined'));
+                assert(is_string($type), new GeneratorException("type undefined"));
 
-                $pathArg = "[" . join("," . PHP_EOL, array_map(fn(Parameter $p) => "\"{" . $p->getName() . "}\" => \$" . $p->getName(), $parameters["path"])) . "]";
-                $queryArg = "[" . join("," . PHP_EOL, array_map(fn(Parameter $p) => "\"" . $p->getName() . "\" => $" . $p->getName(), $parameters["query"])) . "]";
+                $pathArg =
+                  "[" .
+                  join(
+                      "," . PHP_EOL,
+                      array_map(
+                          fn(Parameter $p) => "\"{" .
+                          $p->getName() .
+                          "}\" => \$" .
+                          $p->getName(),
+                          $parameters["path"]
+                      )
+                  ) .
+                  "]";
+                $queryArg =
+                  "[" .
+                  join(
+                      "," . PHP_EOL,
+                      array_map(
+                          fn(Parameter $p) => "\"" .
+                          $p->getName() .
+                          "\" => $" .
+                          $p->getName(),
+                          $parameters["query"]
+                      )
+                  ) .
+                  "]";
 
-                $body = "return " . self::instantiate(
-                    $instantiate,
-                    $type,
-                    "\$this->send(\"$operation\", $pathArg, $queryArg" . ($requestBody !== null ? ", $" . $requestBody->getName() : "") . ")"
-                ) .
-                ";";
+                $body =
+                  "return " .
+                  self::instantiate(
+                      $instantiate,
+                      $type,
+                      "\$this->send(\"$operation\", $pathArg, $queryArg" .
+                      ($requestBody !== null ? ", $" . $requestBody->getName() : "") .
+                      ")"
+                  ) .
+                  ";";
 
-                if ($operation === 'get') {
-                    if (count($parameters['path']) === 0) {
-                        if (count($parameters['query']) === 0) {
-                            $operation .= 'All';
+                if ($operation === "get") {
+                    if (count($parameters["path"]) === 0) {
+                        if (count($parameters["query"]) === 0) {
+                            $operation .= "All";
                         } else {
-                            $operation = 'filterBy';
+                            $operation = "filterBy";
                         }
                     }
                 }
 
                 /** @var Parameter[] $params */
-                $params = array_merge($parameters['path'], $parameters['query']);
+                $params = array_merge($parameters["path"], $parameters["query"]);
                 if ($requestBody !== null) {
-                    assert(!in_array($requestBody->getName(), array_map(fn(Parameter $p) => $p->getName(), $params)), new GeneratorException('requestBody already exists as path or query parameter'));
+                    assert(
+                        !in_array(
+                            $requestBody->getName(),
+                            array_map(fn(Parameter $p) => $p->getName(), $params)
+                        ),
+                        new GeneratorException(
+                            "requestBody already exists as path or query parameter"
+                        )
+                    );
                     $params[] = $requestBody;
                 }
                 $assertions = [];
-                foreach($params as $param) {
+                foreach ($params as $param) {
                     if (!$param->isOptional()) {
-                        $assertions[] = "assert(\$" . $param->getName() . " !== null, new ArgumentException(\"Parameter `" . $param->getName() . "` is required\"));" . PHP_EOL;
+                        $assertions[] =
+                          "assert(\$" .
+                          $param->getName() .
+                          " !== null, new ArgumentException(\"Parameter `" .
+                          $param->getName() .
+                          "` is required\"));" .
+                          PHP_EOL;
                         $class->uses[] = ArgumentException::class;
                     }
                 }
@@ -151,15 +216,18 @@ class Endpoint extends Writable
                 $throws = [];
                 if (!empty($assertions)) {
                     $body = $assertions . PHP_EOL . $body;
-                    $throws[] = ReturnType::from(ArgumentException::class, "if required parameters are not defined");
+                    $throws[] = ReturnType::from(
+                        ArgumentException::class,
+                        "if required parameters are not defined"
+                    );
                 }
 
                 $docType = null;
-                if (substr($type, -2) === '[]') {
+                if (substr($type, -2) === "[]") {
                     $docType = $type;
-                    $type = 'array';
+                    $type = "array";
                 }
-                $returnType  = ReturnType::from($type, $resp->description, $docType);
+                $returnType = ReturnType::from($type, $resp->description, $docType);
 
                 $method = Method::public(
                     $operation . $operationSuffix,
@@ -175,13 +243,22 @@ class Endpoint extends Writable
         return $class;
     }
 
-    protected static function instantiate(bool $instantiate, string $type, string $arg): string
-    {
+    protected static function instantiate(
+        bool $instantiate,
+        string $type,
+        string $arg
+    ): string {
         if ($instantiate) {
-            if (substr($type, -2) === '[]') {
-                return "array_map(fn(\$a) => new " . Property::typeAs(substr($type, 0, -2), Property::TYPE_SHORT) . "(\$a), {$arg})";
+            if (substr($type, -2) === "[]") {
+                return "array_map(fn(\$a) => new " .
+                  Property::typeAs(substr($type, 0, -2), Property::TYPE_SHORT) .
+                  "(\$a), {$arg})";
             } else {
-                return "new " . Property::typeAs($type, Property::TYPE_SHORT) . "(" . $arg . ")";
+                return "new " .
+                  Property::typeAs($type, Property::TYPE_SHORT) .
+                  "(" .
+                  $arg .
+                  ")";
             }
         } else {
             return $arg;
@@ -200,10 +277,10 @@ class Endpoint extends Writable
     {
         $typeMap = TypeMap::getInstance();
         $parameters = [
-            'path' => [],
-            'query' => [],
+          "path" => [],
+          "query" => [],
         ];
-        foreach($operation->parameters as $parameter) {
+        foreach ($operation->parameters as $parameter) {
             if ($parameter->schema instanceof Reference) {
                 $ref = $parameter->schema->getReference();
                 $parameterType = $typeMap->getTypeFromSchema($ref);
@@ -211,10 +288,20 @@ class Endpoint extends Writable
                 $method = $parameter->schema->type;
                 $parameterType = $typeMap->$method($parameter);
             }
-            if ($parameter->in === 'path') {
-                $parameters['path'][] = Parameter::from($parameter->name, $parameterType, ($parameter->required ? "" : "(Optional) ") . $parameter->description, !$parameter->required);
-            } elseif ($parameter->in === 'query') {
-                $parameters['query'][] = Parameter::from($parameter->name, $parameterType, ($parameter->required ? "" : "(Optional) ") . $parameter->description, !$parameter->required);
+            if ($parameter->in === "path") {
+                $parameters["path"][] = Parameter::from(
+                    $parameter->name,
+                    $parameterType,
+                    ($parameter->required ? "" : "(Optional) ") . $parameter->description,
+                    !$parameter->required
+                );
+            } elseif ($parameter->in === "query") {
+                $parameters["query"][] = Parameter::from(
+                    $parameter->name,
+                    $parameterType,
+                    ($parameter->required ? "" : "(Optional) ") . $parameter->description,
+                    !$parameter->required
+                );
             }
         }
         return $parameters;
@@ -236,11 +323,12 @@ class Endpoint extends Writable
     {
         $parts = explode("/", $path);
         $namespaceParts = [];
-        foreach($parts as $part) {
+        foreach ($parts as $part) {
             if (preg_match("/\{([^}]+)\}/", $part, $match)) {
-
             } else {
-                $namespaceParts[] = Text::snake_case_to_PascalCase(Text::camelCase_to_snake_case($part));
+                $namespaceParts[] = Text::snake_case_to_PascalCase(
+                    Text::camelCase_to_snake_case($part)
+                );
             }
         }
         return (substr($path, 0, 1) === "/" ? "/" : "") .

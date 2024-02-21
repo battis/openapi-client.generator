@@ -12,10 +12,10 @@ use cebe\openapi\spec\OpenApi;
 
 abstract class BaseMapper
 {
-    public const SPEC = 'spec';
-    public const BASE_PATH = 'basePath';
-    public const BASE_NAMESPACE = 'baseNamespace';
-    public const BASE_TYPE = 'baseType';
+    public const SPEC = "spec";
+    public const BASE_PATH = "basePath";
+    public const BASE_NAMESPACE = "baseNamespace";
+    public const BASE_TYPE = "baseType";
 
     private OpenApi $spec;
     private string $baseType;
@@ -64,7 +64,9 @@ abstract class BaseMapper
         $this->baseType = $config[self::BASE_TYPE];
         assert(
             is_a($this->baseType, Mappable::class, true),
-            new ConfigurationException("`" . self::BASE_TYPE . "` must be instance of " . Mappable::class)
+            new ConfigurationException(
+                "`" . self::BASE_TYPE . "` must be instance of " . Mappable::class
+            )
         );
 
         $this->basePath = Path::canonicalize($config[self::BASE_PATH], getcwd());
@@ -72,7 +74,9 @@ abstract class BaseMapper
 
         assert(
             !empty($config[self::BASE_NAMESPACE]),
-            new ConfigurationException("`" . self::BASE_NAMESPACE . "` must be defined")
+            new ConfigurationException(
+                "`" . self::BASE_NAMESPACE . "` must be defined"
+            )
         );
         $this->baseNamespace = trim($config[self::BASE_NAMESPACE], "\\");
 
@@ -86,10 +90,13 @@ abstract class BaseMapper
 
     public function writeFiles(): void
     {
-        foreach($this->classes->getClasses(true) as $class) {
+        foreach ($this->classes->getClasses(true) as $class) {
             $filePath = Path::join($this->basePath, $class->getPath() . ".php");
             @mkdir(dirname($filePath), 0744, true);
-            assert(!file_exists($filePath), new GeneratorException("$filePath exists and cannot be overwritten"));
+            assert(
+                !file_exists($filePath),
+                new GeneratorException("$filePath exists and cannot be overwritten")
+            );
             file_put_contents($filePath, $class);
             Logger::log("Wrote " . $class->getType() . " to $filePath");
         }

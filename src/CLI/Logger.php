@@ -52,7 +52,13 @@ class Logger
          */
         $debug = debug_backtrace(0, 3);
 
-        $debug = $debug[1]['file'] . ', line ' . $debug[1]['line'] . ' @ ' . $debug[2]['function'] . '()';
+        $debug =
+          $debug[1]["file"] .
+          ", line " .
+          $debug[1]["line"] .
+          " @ " .
+          $debug[2]["function"] .
+          "()";
         if (is_array($message)) {
             for ($key = "debug"; array_key_exists($key, $message); $key = "_$key");
             $message[$key] = $debug;
