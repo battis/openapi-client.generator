@@ -8,7 +8,7 @@ use JsonSerializable;
 /**
  * @api
  */
-abstract class BaseObject extends Mappable implements JsonSerializable
+abstract class BaseComponent extends Mappable implements JsonSerializable
 {
     /** @var string[] $fields */
     protected static array $fields = [];
@@ -30,6 +30,19 @@ abstract class BaseObject extends Mappable implements JsonSerializable
     {
         parent::__construct();
         $this->data = $data;
+        foreach(static::$fields as $property => $type) {
+            if (strpos($type, "\\") !== false) {
+                if (strpos($type, "[]") !== false) {
+                    assert(is_array($this->data[$property]), new ClientException("`$property` declared as array ($type)"));
+                    $type = preg_replace("/(.+)\\[\\]$/", "$1", $type);
+                    for ($i = 0; $i < count($this->data[$property]); $i++) {
+                        $this->data[$i] = new $type($this->data[$i]);
+                    }
+                } else {
+                    $this->data[$property] = new $type($this->data[$property]);
+                }
+            }
+        }
     }
 
     /**

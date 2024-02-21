@@ -3,7 +3,7 @@
 namespace Battis\OpenAPI\Generator\Mappers;
 
 use Battis\DataUtilities\Path;
-use Battis\OpenAPI\Client\BaseObject;
+use Battis\OpenAPI\Client\BaseComponent;
 use Battis\OpenAPI\Generator\Classes\Component;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
@@ -32,13 +32,13 @@ class ComponentMapper extends BaseMapper
      */
     public function __construct($config)
     {
-        $config[self::BASE_TYPE] ??= BaseObject::class;
+        $config[self::BASE_TYPE] ??= BaseComponent::class;
         $config[self::BASE_PATH] = Path::join($config[self::BASE_PATH], $this->simpleNamespace());
         $config[self::BASE_NAMESPACE] = Path::join("\\", [$config[self::BASE_NAMESPACE], $this->simpleNamespace()]);
         parent::__construct($config);
         assert(
-            is_a($this->getBaseType(), BaseObject::class, true),
-            new ConfigurationException("`" . self::BASE_TYPE . "` must be instance of " . BaseObject::class)
+            is_a($this->getBaseType(), BaseComponent::class, true),
+            new ConfigurationException("`" . self::BASE_TYPE . "` must be instance of " . BaseComponent::class)
         );
     }
 

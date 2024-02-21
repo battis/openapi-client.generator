@@ -37,13 +37,13 @@ class Component extends Writable
             }
             /** @var Schema $property (because we just resolved it)*/
 
-            $fields[] = $name;
             $method = $property->type;
             $type ??= (string) $typeMap->$method($property);
             // TODO handle enums
             $class->addProperty(Property::public((string) $name, $type, $property->description, null, $property->nullable, true));
+            $fields[] = "\"$name\" => \"" . TypeMap::parseType($type, true, true) . "\"";
         }
-        $fields = Property::protectedStatic('fields', 'array', null, json_encode($fields, JSON_PRETTY_PRINT));
+        $fields = Property::protectedStatic('fields', 'array', null, "[" . PHP_EOL . "    " . join("," . PHP_EOL . "    ", $fields) . PHP_EOL . "]");
         $fields->setDocType('string[]');
         $class->addProperty($fields);
         return $class;
