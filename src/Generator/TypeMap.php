@@ -98,7 +98,11 @@ class TypeMap extends Loggable
      */
     public function number(Schema $elt): string
     {
-        return empty($elt->format) ? "scalar" /* FIXME WAG */ : $elt->format;
+        $type = empty($elt->format) ? "float" : $elt->format;
+        if ($type === 'double') {
+            $type = 'float';
+        }
+        return $type;
     }
 
     /**
