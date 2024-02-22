@@ -10,14 +10,14 @@ use Battis\PHPGenerator\Property;
 
 abstract class Writable extends PHPClass
 {
-    protected string $path;
+    protected string $path = "";
 
     public function getPath(): string
     {
         return $this->path;
     }
 
-    public function mergeWith(Writable $other)
+    public function mergeWith(Writable $other): void
     {
         assert(
             $this->namespace === $other->namespace,
@@ -26,14 +26,22 @@ abstract class Writable extends PHPClass
             )
         );
 
-        if ($this->baseType !== $other->baseType) {
+        /**
+         * @psalm-suppress DocblockTypeContradiction, RedundantConditionGivenDocblockType
+         * TODO clean up logic
+         */
+        if ($this->baseType !== null && $other->baseType !== null) {
             if (is_a($other->baseType, $this->baseType)) {
                 $this->baseType = $other->baseType;
-            } elseif (!is_a($this->baseType, $other->baseType)) {
+            } elseif ($this->baseType !== $other->baseType && !is_a($this->baseType, $other->baseType)) {
                 throw new GeneratorException(
                     "Incompatible base types in merge: $this->baseType and $other->baseType"
                 );
             }
+        } else {
+            throw new GeneratorException(
+                "Incompatible base types in merge: $this->baseType and $other->baseType"
+            );
         }
 
         // merge $url properties, taking longest one
@@ -51,8 +59,10 @@ abstract class Writable extends PHPClass
 
         if ($thisUrlProp && $otherUrlProp) {
             $base = $thisUrlProp->getDefaultValue();
+            assert($base !== null, new GeneratorException('`$url` property should be defined with default value'));
             $base = substr($base, 1, strlen($base) - 2);
             $extension = $otherUrlProp->getDefaultValue();
+            assert($extension !== null, new GeneratorException('`$url` property should be defined with default value'));
             $extension = substr($extension, 1, strlen($extension) - 2);
             if ($base !== $extension) {
                 if (strlen($base) > strlen($extension)) {
@@ -85,6 +95,7 @@ abstract class Writable extends PHPClass
             $other->properties
         );
         $duplicateProperties = array_intersect($thisProperties, $otherProperties);
+        /** @psalm-suppress RedundantConditionGivenDocblockType */
         assert(
             count($duplicateProperties) === 0,
             new GeneratorException(

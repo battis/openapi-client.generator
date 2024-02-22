@@ -3,7 +3,9 @@
 namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
+use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
+use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Property;
 use cebe\openapi\spec\Reference;
@@ -17,10 +19,12 @@ class Component extends Writable
         ComponentMapper $mapper
     ): Component {
         $typeMap = TypeMap::getInstance();
+        $sanitize = Sanitize::getInstance();
 
         $class = new Component();
 
         $type = $typeMap->getTypeFromSchema($ref);
+        assert($type !== null, new GeneratorException("Unknown scheam `$ref`"));
         $nameParts = explode("\\", $type);
         $class->name = array_pop($nameParts);
         $class->namespace = Path::join("\\", $nameParts);
@@ -31,7 +35,7 @@ class Component extends Writable
         $class->path = Path::join($nameParts, $class->name);
 
         $class->baseType = $mapper->getBaseType();
-        $class->description = $schema->description;
+        $class->description = $sanitize->stripHtml($schema->description);
 
         $fields = [];
         foreach ($schema->properties as $name => $property) {
@@ -50,7 +54,7 @@ class Component extends Writable
                 Property::public(
                     (string) $name,
                     $type,
-                    $property->description,
+                    $sanitize->stripHtml($property->description),
                     null,
                     $property->nullable,
                     true

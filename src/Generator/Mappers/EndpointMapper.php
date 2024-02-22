@@ -52,7 +52,7 @@ class EndpointMapper extends BaseMapper
      *     spec: \cebe\openapi\spec\OpenApi,
      *     basePath: string,
      *     baseNamespace: string,
-     *     baseType?: string,
+     *     baseType?: class-string<\Battis\OpenAPI\Client\BaseEndpoint>,
      *   } $config
      */
     public function __construct(array $config)
@@ -82,6 +82,7 @@ class EndpointMapper extends BaseMapper
             $path = (string) $path;
             $url = Path::join($this->getSpec()->servers[0]->url, $path);
             $class = Endpoint::fromPathItem($path, $pathItem, $this, $url);
+            /** @psalm-suppress ArgumentTypeCoercion $sibling is also Writable */
             $sibling = $this->classes->getClass($class->getType());
             if ($sibling !== null) {
                 $sibling->mergeWith($class);
@@ -89,6 +90,7 @@ class EndpointMapper extends BaseMapper
             } else {
                 $this->classes->addClass($class);
                 Logger::log("Generated " . $class->getType());
+                /** @psalm-suppress ArgumentTypeCoercion $class is Writable */
                 assert($this->classes->getClass($class->getType()) !== null);
             }
         }
@@ -98,6 +100,7 @@ class EndpointMapper extends BaseMapper
         $parts = explode("\\", $this->getBaseNamespace());
         array_pop($parts);
         $collection = new NamespaceCollection(join("\\", $parts));
+        /** @psalm-suppress ArgumentTypeCoercion $this->classes contains only Writable */
         $collection->addClass(
             Router::fromClassList(
                 $this->getBaseNamespace(),
@@ -111,16 +114,18 @@ class EndpointMapper extends BaseMapper
         $this->classes = $collection;
     }
 
-    private function generateRouters(NamespaceCollection $namespace)
+    private function generateRouters(NamespaceCollection $namespace): void
     {
         foreach ($namespace->getSubnamespaces() as $sub) {
             $this->generateRouters($sub);
             Logger::log("Routing " . $sub->getNamespace());
+            /** @psalm-suppress ArgumentTypeCoercion $this->classes (and this $namespace) contains only Writable */
             $router = Router::fromClassList(
                 $sub->getNamespace(),
                 $sub->getClasses(),
                 $this
             );
+            /** @psalm-suppress ArgumentTypeCoercion $this->classes (and this $namespace) contains only Writable */
             $sibling = $namespace->getClass($router->getType());
             if ($sibling !== null) {
                 $sibling->mergeWith($router);

@@ -18,6 +18,10 @@ abstract class BaseMapper
     public const BASE_TYPE = "baseType";
 
     private OpenApi $spec;
+
+    /**
+     * @var class-string<\Battis\OpenAPI\Client\Mappable> $baseType
+     */
     private string $baseType;
     private string $basePath;
     private string $baseNamespace;
@@ -32,16 +36,26 @@ abstract class BaseMapper
         return $this->spec;
     }
 
+    /**
+     * @return class-string<\Battis\OpenAPI\Client\Mappable>
+     * @api
+     */
     public function getBaseType(): string
     {
         return $this->baseType;
     }
 
+    /**
+     * @api
+     */
     public function getBasePath(): string
     {
         return $this->basePath;
     }
 
+    /**
+     * @api
+     */
     public function getBaseNamespace(): string
     {
         return $this->baseNamespace;
@@ -54,7 +68,7 @@ abstract class BaseMapper
      *     spec: \cebe\openapi\spec\OpenApi,
      *     basePath: string,
      *     baseNamespace: string,
-     *     baseType: string,
+     *     baseType: class-string<\Battis\OpenAPI\Client\Mappable>,
      *   } $config
      */
     public function __construct(array $config)
@@ -97,7 +111,7 @@ abstract class BaseMapper
                 !file_exists($filePath),
                 new GeneratorException("$filePath exists and cannot be overwritten")
             );
-            file_put_contents($filePath, $class);
+            file_put_contents($filePath, (string) $class);
             Logger::log("Wrote " . $class->getType() . " to $filePath");
         }
     }

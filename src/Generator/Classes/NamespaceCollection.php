@@ -7,17 +7,20 @@ use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 class NamespaceCollection
 {
     /**
-     * @var array<string, Writable> $classes
+     * @var array<class-string<\Battis\OpenAPI\Generator\Classes\Writable>, \Battis\OpenAPI\Generator\Classes\Writable> $classes
      */
     private array $classes = [];
 
     /**
-     * @var array>string, NamespaceCollection> $children
+     * @var array<string, NamespaceCollection> $children
      */
     private array $children = [];
 
     private string $namespace;
 
+    /**
+     * @param string $namespace
+     */
     public function __construct(string $namespace)
     {
         assert(
@@ -27,7 +30,12 @@ class NamespaceCollection
         $this->namespace = $namespace;
     }
 
-    private function getSubnamespaceParts(string $type)
+    /**
+     * @param string $type
+     *
+     * @return string[]
+     */
+    private function getSubnamespaceParts(string $type): array
     {
         return explode("\\", str_replace($this->namespace . "\\", "", $type));
     }
@@ -38,7 +46,7 @@ class NamespaceCollection
     }
 
     /**
-     * @return NamespaceCollection[];
+     * @return array<string, NamespaceCollection>
      */
     public function getSubnamespaces(): array
     {
@@ -66,6 +74,11 @@ class NamespaceCollection
         return strpos($namespace, $this->namespace) === 0;
     }
 
+    /**
+     * @param class-string<\Battis\OpenAPI\Generator\Classes\Writable> $type
+     *
+     * @return ?Writable
+     */
     public function getClass(string $type): ?Writable
     {
         if ($this->containsNamespace($type)) {
@@ -86,6 +99,11 @@ class NamespaceCollection
         return null;
     }
 
+    /**
+     * @param string $namespace
+     *
+     * @return NamespaceCollection
+     */
     public function getNamespaceCollection(string $namespace): NamespaceCollection
     {
         assert(
@@ -107,15 +125,15 @@ class NamespaceCollection
         return $parent;
     }
 
-    public function addClass(Writable $class)
+    public function addClass(Writable $class): void
     {
         assert(
             $this->containsNamespace(
-                $class->getNamespace(),
-                new GeneratorException(
-                    "Namespace $this->namespace does not contain " .
-                    $class->getNamespace()
-                )
+                $class->getNamespace()
+            ),
+            new GeneratorException(
+                "Namespace $this->namespace does not contain " .
+                $class->getNamespace()
             )
         );
         if ($class->getNamespace() === $this->namespace) {
@@ -127,6 +145,7 @@ class NamespaceCollection
                     " already exists in namespace $this->namespace"
                 )
             );
+            /** @psalm-suppress PropertyTypeCoercion */
             $this->classes[$class->getType()] = $class;
         } else {
             $this->getNamespaceCollection($class->getNamespace())->addClass($class);

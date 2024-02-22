@@ -17,6 +17,10 @@ use Psr\Log\LoggerInterface;
 use splitbrain\phpcli\CLI;
 use splitbrain\phpcli\Options;
 
+/**
+ * @psalm-suppress PropertyNotSetInConstructor $bin inherited from CLI
+ * @api
+ */
 class Map extends CLI
 {
     public function __construct(?LoggerInterface $logger = null)
@@ -33,7 +37,11 @@ class Map extends CLI
 
     protected function setup(Options $options)
     {
-        $options->registerOption("delete-previous", "Delete previous mapping", "d");
+        $options->registerOption(
+            "delete-previous",
+            "Delete previous mapping",
+            "d"
+        );
         $options->registerArgument(
             "OpenAPI-spec",
             "The path to an OpenAPI YAML or JSON file",
@@ -87,6 +95,10 @@ class Map extends CLI
         }
     }
 
+    /**
+     * @psalm-suppress PossiblyUnusedParam $specPath, $spec
+     * @api
+     */
     protected function getBasePathFromSpec(
         string $specPath,
         OpenApi $spec,
@@ -95,6 +107,10 @@ class Map extends CLI
         return $basePath;
     }
 
+    /**
+     * @psalm-suppress PossiblyUnusedParam $specPath, $spec
+     * @api
+     */
     protected function getNamespaceFromSpec(
         string $specPath,
         OpenApi $spec,
@@ -143,11 +159,17 @@ class Map extends CLI
             $this->cleanup($basePath);
         }
 
-        // write the PHP classes from memory to disk -- will not overwrite existing files
+        /*
+         * write the PHP classes from memory to disk -- will not overwrite
+         * existing files
+         */
         $components->writeFiles();
         $endpoints->writeFiles();
 
-        // tidy up the PHP to make it all pretty
+        /**
+         * tidy up the PHP to make it all pretty
+         * @psalm-suppress ForbiddenCode shell_exec
+         */
         shell_exec(
             Path::join(getcwd(), "/vendor/bin/php-cs-fixer") . " fix " . $basePath
         );

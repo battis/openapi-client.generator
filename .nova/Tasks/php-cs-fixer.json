@@ -4,5 +4,6 @@
       "enabled" : true,
       "script" : "vendor\/bin\/php-cs-fixer fix"
     }
-  }
+  },
+  "openLogOnRun" : "start"
 }

@@ -10,7 +10,7 @@ use JsonSerializable;
  */
 abstract class BaseComponent extends Mappable implements JsonSerializable
 {
-    /** @var string[] $fields */
+    /** @var array<string, class-string|string> $fields */
     protected static array $fields = [];
 
     /**
@@ -24,6 +24,7 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
      * Construct from a JSON object response value from the SKY API
      *
      * @param array<string, mixed> $data
+     *
      * @api
      */
     public function __construct(array $data)
@@ -31,16 +32,22 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
         $this->data = $data;
         foreach (static::$fields as $property => $type) {
             if (strpos($type, "\\") !== false) {
+                /** @var class-string<\Battis\OpenAPI\Client\BaseComponent> $type */
                 if (strpos($type, "[]") !== false) {
                     assert(
                         is_array($this->data[$property]),
                         new ClientException("`$property` declared as array ($type)")
                     );
+                    /** @var class-string<\Battis\OpenAPI\Client\BaseComponent> $type */
                     $type = preg_replace("/(.+)\\[\\]$/", "$1", $type);
-                    for ($i = 0; $i < count($this->data[$property]); $i++) {
-                        $this->data[$i] = new $type($this->data[$i]);
-                    }
+                    /**
+                     * @psalm-suppress UnsafeInstantiation
+                     */
+                    $this->data[$property] = array_map(fn($elt) => new $type($elt), $this->data[$property]);
                 } else {
+                    /**
+                     * @psalm-suppress UnsafeInstantiation
+                     */
                     $this->data[$property] = new $type($this->data[$property]);
                 }
             }
@@ -65,6 +72,7 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
             "Undefined property: " . static::class . "::$name",
             E_USER_WARNING
         );
+        return null;
     }
 
     /**

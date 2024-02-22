@@ -16,13 +16,15 @@ use Battis\PHPGenerator\Method\Parameter;
 use Battis\PHPGenerator\Method\ReturnType;
 use Battis\PHPGenerator\Property;
 use cebe\openapi\spec\Operation;
+use cebe\openapi\spec\Parameter as SpecParameter;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Reference;
+use cebe\openapi\spec\RequestBody;
 use cebe\openapi\spec\Schema;
 
 class Endpoint extends Writable
 {
-    protected string $url;
+    protected string $url = "";
 
     public static function fromPathItem(
         string $path,
@@ -34,7 +36,7 @@ class Endpoint extends Writable
         $sanitize = Sanitize::getInstance();
 
         $class = new Endpoint();
-        $class->description = $pathItem->description;
+        $class->description = $sanitize->stripHtml($pathItem->description);
         $class->baseType = $mapper->getBaseType();
         $class->addProperty(
             Property::protected("url", "string", "Endpoint URL pattern", "\"$url\"")
@@ -66,9 +68,8 @@ class Endpoint extends Writable
 
                 $instantiate = false;
 
+                /** @var \cebe\openapi\spec\Operation $op */
                 $op = $pathItem->$operation;
-                assert(is_a($op, Operation::class), new GeneratorException());
-                /** @var Operation $op */
                 assert(
                     $op->responses !== null,
                     new SchemaException("$operation $url has no responses")
@@ -77,18 +78,21 @@ class Endpoint extends Writable
                 $parameters = self::methodParameters($op);
 
                 $requestBody = $op->requestBody;
+                assert($requestBody === null || $requestBody instanceof RequestBody, new GeneratorException('Not ready to handle schema ref for request body'));
                 if ($requestBody !== null) {
                     $docType = null;
+                    /** @psalm-suppress MixedAssignment we'll figure it out in a sec */
                     $schema =
                       $requestBody->content[$mapper->expectedContentType()]->schema;
-                    $type = null;
+                    assert($schema !== null, new SchemaException('Missing schema for response'));
                     if ($schema instanceof Reference) {
                         $type = $typeMap->getTypeFromSchema($schema->getReference());
+                        assert($type !== null, new GeneratorException('Could not resolve type for request body'));
                         $class->addUses($type);
                     } else {
-                        /** @var Schema $schema */
                         $method = $schema->type;
                         $type = $schema->type;
+                        /** @var string $docType */
                         $docType = $typeMap->$method($schema, true);
                     }
                     $requestBody = Parameter::from(
@@ -119,6 +123,7 @@ class Endpoint extends Writable
                     if ($schema instanceof Reference) {
                         $ref = $schema->getReference();
                         $type = $typeMap->getTypeFromSchema($ref);
+                        assert($type !== null, new GeneratorException('Could not resolve type for response'));
                         $class->addUses($type);
                         $instantiate = true;
                     } elseif ($schema instanceof Schema) {
@@ -185,7 +190,6 @@ class Endpoint extends Writable
                     }
                 }
 
-                /** @var Parameter[] $params */
                 $params = array_merge($parameters["path"], $parameters["query"]);
                 if ($requestBody !== null) {
                     assert(
@@ -227,7 +231,7 @@ class Endpoint extends Writable
                     $docType = $type;
                     $type = "array";
                 }
-                $returnType = ReturnType::from($type, $resp->description, $docType);
+                $returnType = ReturnType::from($type, $sanitize->stripHtml($resp->description), $docType);
 
                 $method = Method::public(
                     $operation . $operationSuffix,
@@ -269,9 +273,8 @@ class Endpoint extends Writable
      * Parse parameter information from an operation
      *
      * @param \cebe\openapi\spec\Operation $operation
-     * @param \Battis\OpenAPI\Generator\PHPDoc $doc
      *
-     * @return array{method: string[], path: string[], query: string[]}
+     * @return array{path: Parameter[], query: Parameter[]}
      */
     protected static function methodParameters(Operation $operation): array
     {
@@ -281,13 +284,17 @@ class Endpoint extends Writable
           "query" => [],
         ];
         foreach ($operation->parameters as $parameter) {
+            assert($parameter instanceof SpecParameter, new GeneratorException('Not ready to deal with Parameters that are schema refs'));
             if ($parameter->schema instanceof Reference) {
                 $ref = $parameter->schema->getReference();
                 $parameterType = $typeMap->getTypeFromSchema($ref);
             } else {
+                assert($parameter->schema !== null, new SchemaException("no schema provided for parameter"));
                 $method = $parameter->schema->type;
+                /** @var ?class-string<\Battis\OpenAPI\Client\Mappable> */
                 $parameterType = $typeMap->$method($parameter);
             }
+            assert($parameterType !== null, new GeneratorException('could not resolve parameter type'));
             if ($parameter->in === "path") {
                 $parameters["path"][] = Parameter::from(
                     $parameter->name,

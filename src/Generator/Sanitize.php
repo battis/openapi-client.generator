@@ -2,6 +2,7 @@
 
 namespace Battis\OpenAPI\Generator;
 
+use League\HTMLToMarkdown\HtmlConverter;
 use sspat\ReservedWords\ReservedWords;
 
 class Sanitize
@@ -9,10 +10,12 @@ class Sanitize
     protected static ?Sanitize $instance = null;
 
     private ReservedWords $reserved;
+    private HtmlConverter $htmlConverter;
 
     private function __construct()
     {
         $this->reserved = new ReservedWords();
+        $this->htmlConverter = new HtmlConverter();
     }
 
     public static function getInstance(): Sanitize
@@ -40,5 +43,13 @@ class Sanitize
     public function rename(string $name): string
     {
         return $name . "_";
+    }
+
+    public function stripHtml(?string $html): ?string
+    {
+        if ($html !== null) {
+            return $this->htmlConverter->convert($html);
+        }
+        return null;
     }
 }

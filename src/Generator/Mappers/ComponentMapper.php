@@ -28,7 +28,7 @@ class ComponentMapper extends BaseMapper
      *     spec: \cebe\openapi\spec\OpenApi,
      *     basePath: string,
      *     baseNamespace: string,
-     *     baseType?: string,
+     *     baseType?: class-string<\Battis\OpenAPI\Client\BaseComponent>,
      *   } $config
      */
     public function __construct($config)
@@ -57,26 +57,26 @@ class ComponentMapper extends BaseMapper
         $sanitize = Sanitize::getInstance();
 
         assert(
-            $this->getSpec()->components && $this->getSpec()->components->schemas,
+            ($c = $this->getSpec()->components) !== null && $c->schemas,
             new SchemaException("#/components/schemas not defined")
         );
 
         // pre-map all the schemas to FQN class names
-        foreach (array_keys($this->getSpec()->components->schemas) as $name) {
+        foreach (array_keys($c->schemas) as $name) {
             $ref = "#/components/schemas/$name";
             $nameParts = array_map(
                 fn(string $p) => $sanitize->clean($p),
-                explode(".", $name)
+                explode(".", (string) $name)
             );
-            $map->registerSchema(
-                $ref,
-                Path::join("\\", [$this->getBaseNamespace(), $nameParts])
-            );
-            Logger::log("Mapped $ref => " . $map->getTypeFromSchema($ref));
+            /** @var class-string<\Battis\OpenAPI\Client\Mappable> (or it will be in a moment) */
+            $t = Path::join("\\", [$this->getBaseNamespace(), $nameParts]);
+            $map->registerSchema($ref, $t);
+            Logger::log("Mapped $ref => " . (($t = $map->getTypeFromSchema($ref)) !== null ? $t : "null"));
         }
 
         // generate the classes representing all the components defined in the spec
-        foreach ($this->getSpec()->components->schemas as $name => $schema) {
+        assert(($c = $this->getSpec()->components) !== null, new SchemaException('null schema definition'));
+        foreach ($c->schemas as $name => $schema) {
             if ($schema instanceof Reference) {
                 $schema = $schema->resolve();
                 /** @var Schema $schema (because we just resolved it)*/

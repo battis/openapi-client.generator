@@ -10,7 +10,7 @@ class Router extends Writable
 {
     /**
      * @param string $namespace
-     * @param EndpointClass[] $classes
+     * @param Endpoint[] $classes
      */
     public static function fromClassList(
         string $namespace,
@@ -57,7 +57,7 @@ class Router extends Writable
             PHP_EOL .
             "]"
         );
-        $endpoints->setDocType("array<string, class-string>");
+        $endpoints->setDocType("array<string, class-string<\Battis\OpenAPI\Client\BaseEndpoint>>" . Property::typeAs($mapper->getBaseType(), Property::TYPE_ABSOLUTE) . ">>");
         $class->addProperty($endpoints);
 
         foreach ($classes as $c) {

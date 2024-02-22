@@ -95,11 +95,10 @@
             "dist": {
                 "type": "path",
                 "url": "../php-generator",
-                "reference": "27ba74a69bebc0762feaf5922227dab9d5640dbf"
+                "reference": "cc6d147fedafb29cd345831562b805127b5cdbf5"
             },
             "require": {
-                "battis/data-utilities": "^1.2",
-                "league/html-to-markdown": "^5.1"
+                "battis/data-utilities": "^1.2"
             },
             "type": "library",
             "autoload": {

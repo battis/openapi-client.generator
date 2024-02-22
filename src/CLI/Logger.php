@@ -17,9 +17,12 @@ class Logger
 
     private static ?LoggerInterface $logger = null;
 
+    /**
+     * @psalm-suppress UnusedConstructor singleton
+     */
     private function __construct() {}
 
-    public static function init(LoggerInterface $logger)
+    public static function init(LoggerInterface $logger): void
     {
         self::$logger = $logger;
     }

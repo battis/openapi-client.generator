@@ -12,7 +12,7 @@ class TypeMap
     protected static ?TypeMap $instance = null;
 
     /**
-     * @var array<string, string>
+     * @var array<string, class-string<\Battis\OpenAPI\Client\Mappable>>
      */
     private array $schemaToType = [];
 
@@ -25,10 +25,14 @@ class TypeMap
     }
 
     /**
-     * @var array<string, PHPClass>
+     * @var array<string, \Battis\OpenAPI\Generator\Classes\Writable>
      */
     private array $typeToClass = [];
 
+    /**
+     * @param string $ref
+     * @param class-string<\Battis\OpenAPI\Client\Mappable> $type
+     */
     public function registerSchema(string $ref, string $type): void
     {
         $this->schemaToType[$ref] = $type;
@@ -39,6 +43,11 @@ class TypeMap
         $this->typeToClass[$class->getType()] = $class;
     }
 
+    /**
+     * @param string $ref
+     *
+     * @return null|class-string<\Battis\OpenAPI\Client\Mappable>
+     */
     public function getTypeFromSchema(string $ref): ?string
     {
         return $this->schemaToType[$ref] ?? null;
@@ -111,9 +120,7 @@ class TypeMap
         );
         if ($elt->items instanceof Reference) {
             return (string) $this->getTypeFromSchema(
-                $elt->items->getReference(),
-                true,
-                $absolute
+                $elt->items->getReference()
             ) . "[]";
         }
         $method = $elt->items->type;
@@ -138,18 +145,17 @@ class TypeMap
 
     /**
      * @param string $ref
-     * @param array $arguments
+     * @param mixed[] $arguments
      *
      * @return string
+     *
+     * @psalm-suppress PossiblyUnusedParam $arguments
      *
      * @api
      */
     public function __call(string $ref, array $arguments)
     {
-        /** @var bool $absolute */
-        $absolute = $arguments[1] ?? false;
-
-        $class = $this->getTypeFromSchema($ref, true, $absolute);
+        $class = $this->getTypeFromSchema($ref);
         assert($class !== null, new SchemaException("$ref not defined"));
         return $class;
     }
