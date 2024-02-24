@@ -97,7 +97,7 @@ abstract class BaseEndpoint extends Mappable
      * @param string $name
      *
      * @return ?Endpoint
-     * @psalm-suppress MixedInferredReturnType, MixedReturnStatement
+     * @psalm-suppress MixedInferredReturnType
      */
     public function __get(string $name): ?Endpoint
     {
@@ -106,11 +106,10 @@ abstract class BaseEndpoint extends Mappable
             assert(property_exists($this, $instance), new ClientException("Expected router property `$instance` not present"));
             if ($this->$instance === null) {
                 $class = $this->endpoints[$name];
-                /**
-                 * @psalm-suppress UnsafeInstantiation
-                 */
+                /** @psalm-suppress UnsafeInstantiation */
                 $this->$instance = new $class($this->api);
             }
+            /** @psalm-suppress MixedReturnStatement */
             return $this->$instance;
         }
         trigger_error(

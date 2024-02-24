@@ -9,6 +9,7 @@ use Battis\OpenAPI\Generator\Classes\Endpoint;
 use Battis\OpenAPI\Generator\Classes\NamespaceCollection;
 use Battis\OpenAPI\Generator\Classes\Router;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
+use Battis\PHPGenerator\Type;
 
 /**
  * @api
@@ -37,7 +38,7 @@ class EndpointMapper extends BaseMapper
         return "application/json";
     }
 
-    public function simpleNamespace(): string
+    public function subnamespace(): string
     {
         return "Endpoints";
     }
@@ -52,23 +53,23 @@ class EndpointMapper extends BaseMapper
      *     spec: \cebe\openapi\spec\OpenApi,
      *     basePath: string,
      *     baseNamespace: string,
-     *     baseType?: class-string<\Battis\OpenAPI\Client\BaseEndpoint>,
+     *     baseType?: \Battis\PHPGenerator\Type,
      *   } $config
      */
     public function __construct(array $config)
     {
-        $config[self::BASE_TYPE] ??= BaseEndpoint::class;
+        $config[self::BASE_TYPE] ??= new Type(BaseEndpoint::class);
         $config[self::BASE_PATH] = Path::join(
             $config[self::BASE_PATH],
-            $this->simpleNamespace()
+            $this->subnamespace()
         );
         $config[self::BASE_NAMESPACE] = Path::join("\\", [
           $config[self::BASE_NAMESPACE],
-          $this->simpleNamespace(),
+          $this->subnamespace(),
         ]);
         parent::__construct($config);
         assert(
-            is_a($this->getBaseType(), BaseEndpoint::class, true),
+            $this->getBaseType()->is_a(BaseEndpoint::class),
             new ConfigurationException(
                 "`" . self::BASE_TYPE . "` must be instance of " . BaseEndpoint::class
             )
@@ -82,16 +83,13 @@ class EndpointMapper extends BaseMapper
             $path = (string) $path;
             $url = Path::join($this->getSpec()->servers[0]->url, $path);
             $class = Endpoint::fromPathItem($path, $pathItem, $this, $url);
-            /** @psalm-suppress ArgumentTypeCoercion $sibling is also Writable */
-            $sibling = $this->classes->getClass($class->getType());
+            $sibling = $this->classes->getClass($class->getType()->as(Type::FQN));
             if ($sibling !== null) {
                 $sibling->mergeWith($class);
-                Logger::log("Merged into " . $sibling->getType());
+                Logger::log("Merged into " . $sibling->getType()->as(Type::FQN));
             } else {
                 $this->classes->addClass($class);
-                Logger::log("Generated " . $class->getType());
-                /** @psalm-suppress ArgumentTypeCoercion $class is Writable */
-                assert($this->classes->getClass($class->getType()) !== null);
+                Logger::log("Generated " . $class->getType()->as(Type::FQN));
             }
         }
 
@@ -100,7 +98,6 @@ class EndpointMapper extends BaseMapper
         $parts = explode("\\", $this->getBaseNamespace());
         array_pop($parts);
         $collection = new NamespaceCollection(join("\\", $parts));
-        /** @psalm-suppress ArgumentTypeCoercion $this->classes contains only Writable */
         $collection->addClass(
             Router::fromClassList(
                 $this->getBaseNamespace(),
@@ -119,20 +116,18 @@ class EndpointMapper extends BaseMapper
         foreach ($namespace->getSubnamespaces() as $sub) {
             $this->generateRouters($sub);
             Logger::log("Routing " . $sub->getNamespace());
-            /** @psalm-suppress ArgumentTypeCoercion $this->classes (and this $namespace) contains only Writable */
             $router = Router::fromClassList(
                 $sub->getNamespace(),
                 $sub->getClasses(),
                 $this
             );
-            /** @psalm-suppress ArgumentTypeCoercion $this->classes (and this $namespace) contains only Writable */
-            $sibling = $namespace->getClass($router->getType());
+            $sibling = $namespace->getClass($router->getType()->as(Type::FQN));
             if ($sibling !== null) {
                 $sibling->mergeWith($router);
-                Logger::log("Merged into " . $sibling->getType());
+                Logger::log("Merged into " . $sibling->getType()->as(Type::FQN));
             } else {
                 $namespace->addClass($router);
-                Logger::log("Generated " . $router->getType());
+                Logger::log("Generated " . $router->getType()->as(Type::FQN));
             }
         }
     }

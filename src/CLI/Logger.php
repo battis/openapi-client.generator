@@ -18,7 +18,7 @@ class Logger
     private static ?LoggerInterface $logger = null;
 
     /**
-     * @psalm-suppress UnusedConstructor singleton
+     * @api
      */
     private function __construct() {}
 

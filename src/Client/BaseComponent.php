@@ -40,14 +40,10 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
                     );
                     /** @var class-string<\Battis\OpenAPI\Client\BaseComponent> $type */
                     $type = preg_replace("/(.+)\\[\\]$/", "$1", $type);
-                    /**
-                     * @psalm-suppress UnsafeInstantiation
-                     */
+                    /** @psalm-suppress UnsafeInstantiation */
                     $this->data[$property] = array_map(fn($elt) => new $type($elt), $this->data[$property]);
                 } else {
-                    /**
-                     * @psalm-suppress UnsafeInstantiation
-                     */
+                    /** @psalm-suppress UnsafeInstantiation */
                     $this->data[$property] = new $type($this->data[$property]);
                 }
             }

@@ -3,82 +3,92 @@
 namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
+use Battis\OpenAPI\Generator\Classes\Property;
 use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
-use Battis\PHPGenerator\Property;
+use Battis\PHPGenerator\Access;
+use Battis\PHPGenerator\Type;
 
 class Router extends Writable
 {
     /**
      * @param string $namespace
-     * @param Endpoint[] $classes
+     * @param Writable[] $classes
      */
     public static function fromClassList(
         string $namespace,
         array $classes,
         EndpointMapper $mapper
     ): Router {
-        $class = new Router();
-        $class->baseType = $mapper->getBaseType();
-        $class->description = "Routing class for the namespace $namespace";
-
         $namespaceParts = explode("\\", $namespace);
-        $class->name = array_pop($namespaceParts);
-        $class->namespace = join("\\", $namespaceParts);
+        $name = array_pop($namespaceParts);
+        $description = "Routing class for the subnamespace `$name`";
+        $namespace = join("\\", $namespaceParts);
         $baseNamespaceParts = explode("\\", $mapper->getBaseNamespace());
         if (count($baseNamespaceParts) > count($namespaceParts)) {
             $namespaceParts = "..";
-            $class->name = $mapper->rootRouterName();
+            $name = $mapper->rootRouterName();
+            $description = "Routing class for " . ucfirst(basename(dirname($mapper->getBasePath())));
         } else {
             $namespaceParts = array_slice(
                 $namespaceParts,
                 count($baseNamespaceParts)
             );
         }
-        $class->path = Path::join($namespaceParts, $class->name);
+        $path = Path::join($namespaceParts, $name);
 
-        $endpoints = Property::protected(
-            "endpoints",
-            "array",
-            "Routing subpaths",
-            "[" .
-            PHP_EOL .
-            "    " .
-            join(
-                "," . PHP_EOL . "    ",
-                array_map(
-                    fn(Writable $c) => "\"" .
-                    lcfirst($c->getName()) .
-                    "\" => \"" .
-                    Property::typeAs($c->getType(), Property::TYPE_ABSOLUTE) .
-                    "\"",
-                    $classes
-                )
-            ) .
-            PHP_EOL .
-            "]"
+        $class = new Router(
+            $path,
+            $namespace,
+            $mapper->getBaseType(),
+            $description
         );
-        $endpoints->setDocType("array<string, class-string<\Battis\OpenAPI\Client\BaseEndpoint>>" . Property::typeAs($mapper->getBaseType(), Property::TYPE_ABSOLUTE) . ">>");
-        $class->addProperty($endpoints);
+
+        $class->addProperty(
+            new Property(
+                Access::Protected,
+                "endpoints",
+                "array<string, class-string<" .
+                $mapper->getBaseType()->as(Type::ABSOLUTE) .
+                ">>",
+                "Routing subpaths",
+                "[" .
+                PHP_EOL .
+                "    " .
+                join(
+                    "," . PHP_EOL . "    ",
+                    array_map(
+                        fn(Writable $c) => "\"" .
+                        lcfirst($c->getName()) .
+                        "\" => \"" .
+                        $c->getType()->as(Type::ABSOLUTE) .
+                        "\"",
+                        $classes
+                    )
+                ) .
+                PHP_EOL .
+                "]"
+            )
+        );
 
         foreach ($classes as $c) {
             $propName = "_" . lcfirst($c->getName());
             $class->addProperty(
-                Property::protected(
+                new Property(
+                    Access::Protected,
                     $propName,
                     $c->getType(),
                     $c->getDescription(),
-                    "null",
-                    true
+                    "null"
                 )
             );
             $class->addProperty(
-                Property::public(
+                new Property(
+                    Access::Public,
                     lcfirst($c->getName()),
                     $c->getType(),
                     $c->getDescription(),
                     null,
-                    false,
-                    true
+                    Property::DOCUMENTATION_ONLY
                 )
             );
             $class->uses[] = $c->getType();

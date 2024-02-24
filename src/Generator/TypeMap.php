@@ -4,6 +4,7 @@ namespace Battis\OpenAPI\Generator;
 
 use Battis\OpenAPI\Generator\Classes\Writable;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
+use Battis\PHPGenerator\Type;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 
@@ -12,9 +13,55 @@ class TypeMap
     protected static ?TypeMap $instance = null;
 
     /**
-     * @var array<string, class-string<\Battis\OpenAPI\Client\Mappable>>
+     * @var array<string, \Battis\PHPGenerator\Type>
      */
-    private array $schemaToType = [];
+    private array $refToType = [];
+
+    /**
+     * @var array<string, \Battis\OpenAPI\Generator\Classes\Writable>
+     */
+    private array $fqnToClass = [];
+
+    /**
+     * @var array<string,
+     *        callable(): string |
+     *        callable(\cebe\openapi\spec\Schema): string
+     *      > $schemaTypeToPHPType
+     */
+    private array $openAPIToPHP;
+
+    private function __construct()
+    {
+        $this->openAPIToPHP = [
+            'string' => function (Schema $schema): string {
+                /** @psalm-suppress RedundantConditionGivenDocblockType actually, it can be null, pull request to \cebe\openapi? */
+                if ($schema->enum !== null) {
+                    return join("|", array_map(fn(string $value) => "\"$value\"", $schema->enum));
+                }
+                return "string";
+            },
+            'number' => fn(): string => 'float',
+            'integer' => fn(): string => 'int',
+            'boolean' => fn(): string => 'bool',
+            'array' => function (Schema $schema): string {
+                assert($schema->items !== null, new SchemaException("{$schema->title}->items not defined"));
+                return $this->getFQNFromSchema($schema->items) . '[]';
+            },
+            'object' => function (Schema $schema): string {
+                $properties = [];
+                foreach($schema->properties as $name => $property) {
+                    $propertyType = new Type($this->getFQNFromSchema($property));
+                    $properties[] = "$name: " . $propertyType->as(Type::ABSOLUTE);
+                }
+
+                if ($schema->additionalProperties !== true && $schema->additionalProperties !== false) {
+                    $properties[] = "...<string, " . $this->getFQNFromSchema($schema->additionalProperties) . ">";
+                }
+
+                return "array{" . join(", ", $properties) . "}";
+            },
+        ];
+    }
 
     public static function getInstance(): TypeMap
     {
@@ -24,139 +71,46 @@ class TypeMap
         return self::$instance;
     }
 
-    /**
-     * @var array<string, \Battis\OpenAPI\Generator\Classes\Writable>
-     */
-    private array $typeToClass = [];
-
-    /**
-     * @param string $ref
-     * @param class-string<\Battis\OpenAPI\Client\Mappable> $type
-     */
-    public function registerSchema(string $ref, string $type): void
+    public function registerReference(string $ref, Type $type): void
     {
-        $this->schemaToType[$ref] = $type;
+        $this->refToType[$ref] = $type;
     }
 
     public function registerClass(Writable $class): void
     {
-        $this->typeToClass[$class->getType()] = $class;
+        $this->fqnToClass[$class->getType()->as(Type::FQN)] = $class;
+    }
+
+    public function getTypeFromReference(string $ref): ?Type
+    {
+        return $this->refToType[$ref] ?? null;
     }
 
     /**
-     * @param string $ref
+     * @param string $fqn
      *
-     * @return null|class-string<\Battis\OpenAPI\Client\Mappable>
-     */
-    public function getTypeFromSchema(string $ref): ?string
-    {
-        return $this->schemaToType[$ref] ?? null;
-    }
-
-    public function getClassFromType(string $type): ?Writable
-    {
-        return $this->typeToClass[$type] ?? null;
-    }
-
-    /**
-     * @return string
+     * @return Writable|null
      *
      * @api
      */
-    public function boolean(): string
+    public function getClassFromFQN(string $fqn): ?Writable
     {
-        return "bool";
+        return $this->fqnToClass[$fqn] ?? null;
     }
 
     /**
-     * @return string
-     *
-     * @api
-     */
-    public function integer(): string
-    {
-        return "int";
-    }
-
-    /**
-     * @param Schema $elt
+     * @param \cebe\openapi\spec\Schema|\cebe\openapi\spec\Reference $schema
      *
      * @return string
-     *
-     * @api
      */
-    public function number(Schema $elt): string
+    public function getFQNFromSchema($schema): string
     {
-        $type = empty($elt->format) ? "float" : $elt->format;
-        if ($type === "double") {
-            $type = "float";
+        if ($schema instanceof Reference) {
+            $type = $this->getTypeFromReference($schema->getReference());
+            assert($type !== null, new SchemaException("Reference `" . $schema->getReference() . "` not registered"));
+            return $type->as(Type::FQN);
         }
-        return $type;
-    }
-
-    /**
-     * @return string
-     *
-     * @api
-     */
-    public function string(): string
-    {
-        return "string";
-    }
-
-    /**
-     * @param Schema $elt
-     * @param bool $absolute
-     *
-     * @return string
-     *
-     * @api
-     */
-    public function array(Schema $elt, bool $absolute = false): string
-    {
-        assert(
-            $elt->items !== null,
-            new SchemaException("array spec $elt->title missing items spec")
-        );
-        if ($elt->items instanceof Reference) {
-            return (string) $this->getTypeFromSchema(
-                $elt->items->getReference()
-            ) . "[]";
-        }
-        $method = $elt->items->type;
-        return (string) $this->$method($elt->items, $absolute) . "[]";
-    }
-
-    /**
-     * @param Schema $elt
-     *
-     * @return string
-     *
-     * @api
-     */
-    public function object(Schema $elt): string
-    {
-        assert(
-            $elt->additionalProperties instanceof Schema,
-            new SchemaException(var_export($elt->getSerializableData(), true))
-        );
-        return $elt->additionalProperties->type . "[]";
-    }
-
-    /**
-     * @param string $ref
-     * @param mixed[] $arguments
-     *
-     * @return string
-     *
-     * @psalm-suppress PossiblyUnusedParam $arguments
-     *
-     * @api
-     */
-    public function __call(string $ref, array $arguments)
-    {
-        $class = $this->getTypeFromSchema($ref);
-        assert($class !== null, new SchemaException("$ref not defined"));
-        return $class;
+        assert(array_key_exists($schema->type, $this->openAPIToPHP), new SchemaException("Unknown schema type `$schema->type`"));
+        return $this->openAPIToPHP[$schema->type]($schema);
     }
 }

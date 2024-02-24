@@ -3,18 +3,22 @@
 namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
+use Battis\PHPGenerator\Type;
 
 class NamespaceCollection
 {
     /**
-     * @var array<class-string<\Battis\OpenAPI\Generator\Classes\Writable>, \Battis\OpenAPI\Generator\Classes\Writable> $classes
+     * @var array<
+     *      string,
+     *      \Battis\OpenAPI\Generator\Classes\Writable
+     *    > $classes
      */
     private array $classes = [];
 
     /**
      * @var array<string, NamespaceCollection> $children
      */
-    private array $children = [];
+    private array $subnamespaces = [];
 
     private string $namespace;
 
@@ -50,7 +54,7 @@ class NamespaceCollection
      */
     public function getSubnamespaces(): array
     {
-        return $this->children;
+        return $this->subnamespaces;
     }
 
     /**
@@ -62,7 +66,7 @@ class NamespaceCollection
     {
         $result = array_merge($this->classes);
         if ($recursive) {
-            foreach ($this->children as $child) {
+            foreach ($this->subnamespaces as $child) {
                 $result = array_merge($result, $child->getClasses($recursive));
             }
         }
@@ -74,26 +78,21 @@ class NamespaceCollection
         return strpos($namespace, $this->namespace) === 0;
     }
 
-    /**
-     * @param class-string<\Battis\OpenAPI\Generator\Classes\Writable> $type
-     *
-     * @return ?Writable
-     */
-    public function getClass(string $type): ?Writable
+    public function getClass(string $fqn): ?Writable
     {
-        if ($this->containsNamespace($type)) {
-            $parts = $this->getSubnamespaceParts($type);
+        if ($this->containsNamespace($fqn)) {
+            $parts = $this->getSubnamespaceParts($fqn);
             array_pop($parts); // class name
             $parent = $this;
             foreach ($parts as $part) {
-                if (array_key_exists($part, $parent->children)) {
-                    $parent = $parent->children[$part];
+                if (array_key_exists($part, $parent->subnamespaces)) {
+                    $parent = $parent->subnamespaces[$part];
                 } else {
                     return null;
                 }
             }
-            if (array_key_exists($type, $parent->classes)) {
-                return $parent->classes[$type];
+            if (array_key_exists($fqn, $parent->classes)) {
+                return $parent->classes[$fqn];
             }
         }
         return null;
@@ -115,12 +114,12 @@ class NamespaceCollection
         $parts = $this->getSubnamespaceParts($namespace);
         $parent = $this;
         foreach ($parts as $part) {
-            if (!array_key_exists($part, $parent->children)) {
-                $parent->children[$part] = new NamespaceCollection(
+            if (!array_key_exists($part, $parent->subnamespaces)) {
+                $parent->subnamespaces[$part] = new NamespaceCollection(
                     $parent->namespace . "\\" . $part
                 );
             }
-            $parent = $parent->children[$part];
+            $parent = $parent->subnamespaces[$part];
         }
         return $parent;
     }
@@ -138,15 +137,14 @@ class NamespaceCollection
         );
         if ($class->getNamespace() === $this->namespace) {
             assert(
-                !array_key_exists($class->getType(), $this->classes),
+                !array_key_exists($class->getType()->as(Type::FQN), $this->classes),
                 new GeneratorException(
                     "Class " .
-                    $class->getType() .
+                    $class->getType()->as(Type::FQN) .
                     " already exists in namespace $this->namespace"
                 )
             );
-            /** @psalm-suppress PropertyTypeCoercion */
-            $this->classes[$class->getType()] = $class;
+            $this->classes[$class->getType()->as(Type::FQN)] = $class;
         } else {
             $this->getNamespaceCollection($class->getNamespace())->addClass($class);
         }

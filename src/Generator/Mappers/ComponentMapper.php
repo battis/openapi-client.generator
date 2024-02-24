@@ -10,6 +10,7 @@ use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
+use Battis\PHPGenerator\Type;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 
@@ -18,7 +19,7 @@ use cebe\openapi\spec\Schema;
  */
 class ComponentMapper extends BaseMapper
 {
-    public function simpleNamespace(): string
+    public function subnamespace(): string
     {
         return "Components";
     }
@@ -28,23 +29,23 @@ class ComponentMapper extends BaseMapper
      *     spec: \cebe\openapi\spec\OpenApi,
      *     basePath: string,
      *     baseNamespace: string,
-     *     baseType?: class-string<\Battis\OpenAPI\Client\BaseComponent>,
+     *     baseType?: \Battis\PHPGenerator\Type,
      *   } $config
      */
     public function __construct($config)
     {
-        $config[self::BASE_TYPE] ??= BaseComponent::class;
+        $config[self::BASE_TYPE] ??= new Type(BaseComponent::class);
         $config[self::BASE_PATH] = Path::join(
             $config[self::BASE_PATH],
-            $this->simpleNamespace()
+            $this->subnamespace()
         );
         $config[self::BASE_NAMESPACE] = Path::join("\\", [
           $config[self::BASE_NAMESPACE],
-          $this->simpleNamespace(),
+          $this->subnamespace(),
         ]);
         parent::__construct($config);
         assert(
-            is_a($this->getBaseType(), BaseComponent::class, true),
+            $this->getBaseType()->is_a(BaseComponent::class),
             new ConfigurationException(
                 "`" . self::BASE_TYPE . "` must be instance of " . BaseComponent::class
             )
@@ -68,10 +69,9 @@ class ComponentMapper extends BaseMapper
                 fn(string $p) => $sanitize->clean($p),
                 explode(".", (string) $name)
             );
-            /** @var class-string<\Battis\OpenAPI\Client\Mappable> (or it will be in a moment) */
-            $t = Path::join("\\", [$this->getBaseNamespace(), $nameParts]);
-            $map->registerSchema($ref, $t);
-            Logger::log("Mapped $ref => " . (($t = $map->getTypeFromSchema($ref)) !== null ? $t : "null"));
+            $type = new Type(Path::join("\\", [$this->getBaseNamespace(), $nameParts]));
+            $map->registerReference($ref, $type);
+            Logger::log("Mapped $ref => " . $type->as(Type::FQN));
         }
 
         // generate the classes representing all the components defined in the spec
@@ -86,7 +86,7 @@ class ComponentMapper extends BaseMapper
                 $schema,
                 $this
             );
-            Logger::log("Generated " . $class->getType());
+            Logger::log("Generated " . $class->getType()->as(Type::FQN));
             $map->registerClass($class);
             $this->classes->addClass($class);
         }

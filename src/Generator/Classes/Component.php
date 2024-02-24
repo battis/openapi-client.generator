@@ -4,10 +4,12 @@ namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
+use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
-use Battis\PHPGenerator\Property;
+use Battis\PHPGenerator\Access;
+use Battis\PHPGenerator\Type;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
 
@@ -19,64 +21,60 @@ class Component extends Writable
         ComponentMapper $mapper
     ): Component {
         $typeMap = TypeMap::getInstance();
-        $sanitize = Sanitize::getInstance();
 
-        $class = new Component();
-
-        $type = $typeMap->getTypeFromSchema($ref);
+        $type = $typeMap->getTypeFromReference($ref);
         assert($type !== null, new GeneratorException("Unknown scheam `$ref`"));
-        $nameParts = explode("\\", $type);
-        $class->name = array_pop($nameParts);
-        $class->namespace = Path::join("\\", $nameParts);
-        $nameParts = array_slice(
-            $nameParts,
-            count(explode("\\", $mapper->getBaseNamespace()))
+        $nameParts = explode(
+            "\\",
+            str_replace($mapper->getBaseNamespace() . "\\", "", $type->as(Type::FQN))
         );
-        $class->path = Path::join($nameParts, $class->name);
+        $name = array_pop($nameParts);
+        $path = Path::join($nameParts, $name);
 
-        $class->baseType = $mapper->getBaseType();
-        $class->description = $sanitize->stripHtml($schema->description);
+        $class = new Component(
+            $path,
+            Path::join("\\", [$mapper->getBaseNamespace(), $nameParts]),
+            $mapper->getBaseType(),
+            $schema->description
+        );
 
         $fields = [];
         foreach ($schema->properties as $name => $property) {
-            $type = null;
+            $fqn = $typeMap->getFQNFromSchema($property);
             if ($property instanceof Reference) {
-                $ref = $property->getReference();
                 $property = $property->resolve();
-                $type = $typeMap->getTypeFromSchema($ref);
+                // FIXME deal with objects as properties -- may already be handled in TypeMap?
+                assert(
+                    $property instanceof Schema,
+                    new SchemaException("Unexpected object")
+                );
             }
-            /** @var Schema $property (because we just resolved it)*/
 
-            $method = $property->type;
-            $type ??= (string) $typeMap->$method($property);
-            // TODO handle enums
             $class->addProperty(
-                Property::public(
+                new Property(
+                    Access::Public,
                     (string) $name,
-                    $type,
-                    $sanitize->stripHtml($property->description),
+                    $fqn,
+                    $property->description,
                     null,
-                    $property->nullable,
-                    true
+                    Property::DOCUMENTATION_ONLY | ($property->nullable === true ? Property::NULLABLE : Property::NONE)
                 )
             );
+            $type = new Type($fqn);
             $fields[] =
-              "\"$name\" => \"" .
-              Property::typeAs($type, Property::TYPE_ABSOLUTE) .
-              "\"";
+              "\"$name\" => \"" . ($type->isMixed() ? $type->as(Type::PHP) : $type->as(Type::ABSOLUTE)) . "\"";
         }
-        $fields = Property::protectedStatic(
+        $fields = new Property(
+            Access::Protected,
             "fields",
-            "array",
+            "string[]",
             null,
             "[" .
             PHP_EOL .
-            "    " .
-            join("," . PHP_EOL . "    ", $fields) .
-            PHP_EOL .
-            "]"
+            str_repeat(" ", 4) . join("," . PHP_EOL . str_repeat(" ", 4), $fields) . PHP_EOL .
+            "]",
+            Property::STATIC
         );
-        $fields->setDocType("string[]");
         $class->addProperty($fields);
         return $class;
     }

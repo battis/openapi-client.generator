@@ -6,26 +6,28 @@ use Battis\DataUtilities\Path;
 use Battis\DataUtilities\Text;
 use Battis\OpenAPI\CLI\Logger;
 use Battis\OpenAPI\Client\Exceptions\ArgumentException;
+use Battis\OpenAPI\Generator\Classes\Method\Parameter;
+use Battis\OpenAPI\Generator\Classes\Method\ReturnType;
+use Battis\OpenAPI\Generator\Classes\Property;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
-use Battis\PHPGenerator\Method;
-use Battis\PHPGenerator\Method\Parameter;
-use Battis\PHPGenerator\Method\ReturnType;
-use Battis\PHPGenerator\Property;
+use Battis\PHPGenerator\Access;
+use Battis\PHPGenerator\PHPClass;
+use Battis\PHPGenerator\Property as PHPProperty;
+use Battis\PHPGenerator\Type;
 use cebe\openapi\spec\Operation;
 use cebe\openapi\spec\Parameter as SpecParameter;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\RequestBody;
+use cebe\openapi\spec\Response;
 use cebe\openapi\spec\Schema;
 
 class Endpoint extends Writable
 {
-    protected string $url = "";
-
     public static function fromPathItem(
         string $path,
         PathItem $pathItem,
@@ -35,25 +37,26 @@ class Endpoint extends Writable
         $typeMap = TypeMap::getInstance();
         $sanitize = Sanitize::getInstance();
 
-        $class = new Endpoint();
-        $class->description = $sanitize->stripHtml($pathItem->description);
-        $class->baseType = $mapper->getBaseType();
-        $class->addProperty(
-            Property::protected("url", "string", "Endpoint URL pattern", "\"$url\"")
-        );
-        $class->url = $url;
-        $class->path = static::normalizePath($path);
-        $class->name = $sanitize->clean(basename($class->path));
-        $dir = dirname($class->path);
+        $normalizedPath = static::normalizePath($path);
+        $dir = dirname($normalizedPath);
         if ($dir === "." || $dir === "/") {
             $dir = null;
         }
-        $class->namespace = Path::join("\\", [
-          $mapper->getBaseNamespace(),
-          $dir === null ? [] : explode("/", $dir),
-        ]);
 
-        preg_match_all("/\{([^}]+)\}\//", $class->url, $match, PREG_PATTERN_ORDER);
+        $class = new Endpoint(
+            $normalizedPath,
+            Path::join("\\", [
+              $mapper->getBaseNamespace(),
+              $dir === null ? [] : explode("/", $dir),
+            ]),
+            $mapper->getBaseType(),
+            $sanitize->stripHtml($pathItem->description)
+        );
+
+        $class->addProperty(new Property(Access::Protected, "url", "string", "Endpoint URL pattern", "\"$url\""));
+
+        // name operations based on path parameters for disambiguation on merge
+        preg_match_all("/\{([^}]+)\}\//", $url, $match, PREG_PATTERN_ORDER);
         $operationSuffix = Text::snake_case_to_PascalCase(
             (!empty($match[1]) ? "by_" : "") .
             join(
@@ -78,69 +81,47 @@ class Endpoint extends Writable
                 $parameters = self::methodParameters($op);
 
                 $requestBody = $op->requestBody;
+                // FIXME handle schema ref for request body
                 assert($requestBody === null || $requestBody instanceof RequestBody, new GeneratorException('Not ready to handle schema ref for request body'));
                 if ($requestBody !== null) {
-                    $docType = null;
-                    /** @psalm-suppress MixedAssignment we'll figure it out in a sec */
                     $schema =
                       $requestBody->content[$mapper->expectedContentType()]->schema;
                     assert($schema !== null, new SchemaException('Missing schema for response'));
-                    if ($schema instanceof Reference) {
-                        $type = $typeMap->getTypeFromSchema($schema->getReference());
-                        assert($type !== null, new GeneratorException('Could not resolve type for request body'));
-                        $class->addUses($type);
-                    } else {
-                        $method = $schema->type;
-                        $type = $schema->type;
-                        /** @var string $docType */
-                        $docType = $typeMap->$method($schema, true);
-                    }
-                    $requestBody = Parameter::from(
-                        "requestBody",
-                        $type,
-                        $requestBody->description
-                    );
-                    if ($docType !== null) {
-                        $requestBody->setDocType($docType);
-                    }
+                    $fqn = $typeMap->getFQNFromSchema($schema);
+                    $requestBody = new Parameter("requestBody", $fqn, null, $requestBody->description);
                 }
 
                 // return type
                 $responses = $op->responses;
-                /** @var ?\cebe\openapi\spec\Response $resp */
                 $resp = is_array($responses)
                   ? $responses["200"] ?? $responses["201"]
                   : $responses->getResponse("200") ?? $responses->getResponse("201");
                 assert(
-                    $resp !== null,
+                    $resp instanceof Response,
                     new SchemaException("$operation $url has no OK response")
                 );
                 $content = $resp->content;
                 $content = $content[$mapper->expectedContentType()] ?? null;
-                $type = null;
+
+                $fqn = "void";
+                $type = new Type($fqn);
+
                 if ($content !== null) {
                     $schema = $content->schema;
+                    assert($schema !== null, new SchemaException("Content schema not defined: " . json_encode($content->getSerializableData(), JSON_PRETTY_PRINT)));
+                    $fqn = $typeMap->getFQNFromSchema($schema);
+                    $type = new Type($fqn);
                     if ($schema instanceof Reference) {
-                        $ref = $schema->getReference();
-                        $type = $typeMap->getTypeFromSchema($ref);
-                        assert($type !== null, new GeneratorException('Could not resolve type for response'));
                         $class->addUses($type);
                         $instantiate = true;
-                    } elseif ($schema instanceof Schema) {
-                        $method = $schema->type;
-                        $type = (string) $typeMap->$method($schema);
-                        $t = substr($type, 0, -2);
-                        $instantiate =
-                          substr($type, -2) === "[]" &&
-                          $typeMap->getClassFromType($t) !== null;
-                        if ($instantiate) {
-                            $class->addUses($t);
+                    } elseif ($type->isArray()) {
+                        $eltType = $type->getArrayElementType();
+                        if ($eltType !== null) {
+                            $instantiate = true;
+                            $class->addUses($eltType);
                         }
                     }
-                } else {
-                    $type = "void";
                 }
-                assert(is_string($type), new GeneratorException("type undefined"));
 
                 $pathArg =
                   "[" .
@@ -205,7 +186,7 @@ class Endpoint extends Writable
                 }
                 $assertions = [];
                 foreach ($params as $param) {
-                    if (!$param->isOptional()) {
+                    if ($param->isOptional() === false) {
                         $assertions[] =
                           "assert(\$" .
                           $param->getName() .
@@ -213,34 +194,21 @@ class Endpoint extends Writable
                           $param->getName() .
                           "` is required\"));" .
                           PHP_EOL;
-                        $class->uses[] = ArgumentException::class;
+                        $class->addUses(ArgumentException::class);
                     }
                 }
                 $assertions = join($assertions);
+                /** @var ReturnType[] $throws */
                 $throws = [];
                 if (!empty($assertions)) {
                     $body = $assertions . PHP_EOL . $body;
-                    $throws[] = ReturnType::from(
+                    $throws[] = new ReturnType(
                         ArgumentException::class,
                         "if required parameters are not defined"
                     );
                 }
 
-                $docType = null;
-                if (substr($type, -2) === "[]") {
-                    $docType = $type;
-                    $type = "array";
-                }
-                $returnType = ReturnType::from($type, $sanitize->stripHtml($resp->description), $docType);
-
-                $method = Method::public(
-                    $operation . $operationSuffix,
-                    $returnType,
-                    $body,
-                    $op->description,
-                    $params,
-                    $throws
-                );
+                $method = new Method(Access::Public, $operation . $operationSuffix, $params, new ReturnType($type, $resp->description), $body, $op->description, $throws);
                 $class->addMethod($method);
             }
         }
@@ -249,17 +217,19 @@ class Endpoint extends Writable
 
     protected static function instantiate(
         bool $instantiate,
-        string $type,
+        Type $type,
         string $arg
     ): string {
         if ($instantiate) {
-            if (substr($type, -2) === "[]") {
+            if ($type->isArray()) {
+                $eltType = $type->getArrayElementType();
+                assert($eltType !== null, new GeneratorException("Attempting to instantiate unclear array definition: " . $type->as(Type::FQN)));
                 return "array_map(fn(\$a) => new " .
-                  Property::typeAs(substr($type, 0, -2), Property::TYPE_SHORT) .
+                  $eltType->as(Type::SHORT) .
                   "(\$a), {$arg})";
             } else {
                 return "new " .
-                  Property::typeAs($type, Property::TYPE_SHORT) .
+                  $type->as(Type::SHORT) .
                   "(" .
                   $arg .
                   ")";
@@ -284,31 +254,14 @@ class Endpoint extends Writable
           "query" => [],
         ];
         foreach ($operation->parameters as $parameter) {
-            assert($parameter instanceof SpecParameter, new GeneratorException('Not ready to deal with Parameters that are schema refs'));
-            if ($parameter->schema instanceof Reference) {
-                $ref = $parameter->schema->getReference();
-                $parameterType = $typeMap->getTypeFromSchema($ref);
-            } else {
-                assert($parameter->schema !== null, new SchemaException("no schema provided for parameter"));
-                $method = $parameter->schema->type;
-                /** @var ?class-string<\Battis\OpenAPI\Client\Mappable> */
-                $parameterType = $typeMap->$method($parameter);
-            }
-            assert($parameterType !== null, new GeneratorException('could not resolve parameter type'));
+            // FIXME deal with parameters that are schema refs
+            assert($parameter instanceof SpecParameter, new GeneratorException("Unexpected parameter reference"));
+            assert($parameter->schema !== null, new SchemaException("Undefined schema for parameter"));
+            $fqn = $typeMap->getFQNFromSchema($parameter->schema);
             if ($parameter->in === "path") {
-                $parameters["path"][] = Parameter::from(
-                    $parameter->name,
-                    $parameterType,
-                    ($parameter->required ? "" : "(Optional) ") . $parameter->description,
-                    !$parameter->required
-                );
+                $parameters["path"][] = new Parameter($parameter->name, $fqn, null, $parameter->description, !$parameter->required ? Parameter::NULLABLE : Parameter::NONE);
             } elseif ($parameter->in === "query") {
-                $parameters["query"][] = Parameter::from(
-                    $parameter->name,
-                    $parameterType,
-                    ($parameter->required ? "" : "(Optional) ") . $parameter->description,
-                    !$parameter->required
-                );
+                $parameters["query"][] = new Parameter($parameter->name, $fqn, null, $parameter->description, !$parameter->required ? Parameter::NULLABLE : Parameter::NONE);
             }
         }
         return $parameters;
@@ -340,5 +293,51 @@ class Endpoint extends Writable
         }
         return (substr($path, 0, 1) === "/" ? "/" : "") .
           join("/", $namespaceParts);
+    }
+
+    public function mergeWith(PHPClass $other): void
+    {
+        // merge $url properties to longer URL that includes shorter URL
+        $thisUrlProps = array_filter(
+            $this->properties,
+            fn(PHPProperty $prop) => $prop->getName() === "url"
+        );
+        $thisUrlProp = $thisUrlProps[0] ?? null;
+
+        $otherUrlProps = array_filter(
+            $other->properties,
+            fn(PHPProperty $prop) => $prop->getName() === "url"
+        );
+        $otherUrlProp = $otherUrlProps[0] ?? null;
+
+        if ($thisUrlProp && $otherUrlProp) {
+            $base = $thisUrlProp->getDefaultValue();
+            assert($base !== null, new GeneratorException('`$url` property should be defined with default value'));
+            $base = substr($base, 1, strlen($base) - 2);
+            $extension = $otherUrlProp->getDefaultValue();
+            assert($extension !== null, new GeneratorException('`$url` property should be defined with default value'));
+            $extension = substr($extension, 1, strlen($extension) - 2);
+            if ($base !== $extension) {
+                if (strlen($base) > strlen($extension)) {
+                    $temp = $base;
+                    $base = $extension;
+                    $extension = $temp;
+                }
+                Logger::log(
+                    "Merging $base and $extension into one endpoint",
+                    Logger::WARNING
+                );
+
+                $this->removeProperty($thisUrlProp);
+                $other->removeProperty($otherUrlProp);
+                $this->addProperty(
+                    new Property(Access::Protected, "url", "string", null, "\"$extension\"")
+                );
+            } else {
+                $other->removeProperty($otherUrlProp);
+            }
+        }
+
+        parent::mergeWith($other);
     }
 }

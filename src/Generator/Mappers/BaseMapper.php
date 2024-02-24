@@ -8,6 +8,7 @@ use Battis\OpenAPI\Client\Mappable;
 use Battis\OpenAPI\Generator\Classes\NamespaceCollection;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
+use Battis\PHPGenerator\Type;
 use cebe\openapi\spec\OpenApi;
 
 abstract class BaseMapper
@@ -19,43 +20,27 @@ abstract class BaseMapper
 
     private OpenApi $spec;
 
-    /**
-     * @var class-string<\Battis\OpenAPI\Client\Mappable> $baseType
-     */
-    private string $baseType;
+    private Type $baseType;
     private string $basePath;
     private string $baseNamespace;
 
-    /**
-     * @api
-     */
-    abstract public function simpleNamespace(): string;
+    abstract public function subnamespace(): string;
 
     public function getSpec(): OpenApi
     {
         return $this->spec;
     }
 
-    /**
-     * @return class-string<\Battis\OpenAPI\Client\Mappable>
-     * @api
-     */
-    public function getBaseType(): string
+    public function getBaseType(): Type
     {
         return $this->baseType;
     }
 
-    /**
-     * @api
-     */
     public function getBasePath(): string
     {
         return $this->basePath;
     }
 
-    /**
-     * @api
-     */
     public function getBaseNamespace(): string
     {
         return $this->baseNamespace;
@@ -68,7 +53,7 @@ abstract class BaseMapper
      *     spec: \cebe\openapi\spec\OpenApi,
      *     basePath: string,
      *     baseNamespace: string,
-     *     baseType: class-string<\Battis\OpenAPI\Client\Mappable>,
+     *     baseType: \Battis\PHPGenerator\Type,
      *   } $config
      */
     public function __construct(array $config)
@@ -77,7 +62,7 @@ abstract class BaseMapper
 
         $this->baseType = $config[self::BASE_TYPE];
         assert(
-            is_a($this->baseType, Mappable::class, true),
+            $this->baseType->is_a(Mappable::class),
             new ConfigurationException(
                 "`" . self::BASE_TYPE . "` must be instance of " . Mappable::class
             )
@@ -111,8 +96,8 @@ abstract class BaseMapper
                 !file_exists($filePath),
                 new GeneratorException("$filePath exists and cannot be overwritten")
             );
-            file_put_contents($filePath, (string) $class);
-            Logger::log("Wrote " . $class->getType() . " to $filePath");
+            file_put_contents($filePath, $class->asImplementation());
+            Logger::log("Wrote " . $class->getType()->as(Type::FQN) . " to $filePath");
         }
     }
 }

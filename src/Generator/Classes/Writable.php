@@ -2,124 +2,44 @@
 
 namespace Battis\OpenAPI\Generator\Classes;
 
-use Battis\OpenAPI\CLI\Logger;
-use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
-use Battis\PHPGenerator\Method;
+use Battis\OpenAPI\Generator\Sanitize;
 use Battis\PHPGenerator\PHPClass;
-use Battis\PHPGenerator\Property;
 
 abstract class Writable extends PHPClass
 {
-    protected string $path = "";
+    /**
+     * Relative path to class from `BaseMapper->getBasePath()`
+     *
+     * @var string $path
+     */
+    protected string $path;
+
+    /**
+     * @param string $path Relative path to class from `BaseMapper->getBasePath()`
+     * @param string $namespace
+     * @param null|string|\Battis\PHPGenerator\Type $baseType
+     * @param ?string $description
+     */
+    public function __construct(
+        string $path,
+        string $namespace,
+        $baseType = null,
+        ?string $description = null
+    ) {
+        $this->path = $path;
+        $sanitize = Sanitize::getInstance();
+        parent::__construct(
+            $namespace,
+            $sanitize->clean(basename($path)),
+            $baseType,
+            $description !== null ?
+                $sanitize->stripHtml($description) :
+                null
+        );
+    }
 
     public function getPath(): string
     {
         return $this->path;
-    }
-
-    public function mergeWith(Writable $other): void
-    {
-        assert(
-            $this->namespace === $other->namespace,
-            new GeneratorException(
-                "Namespace mismatch in merge: $this->namespace and $other->namespace"
-            )
-        );
-
-        /**
-         * @psalm-suppress DocblockTypeContradiction, RedundantConditionGivenDocblockType
-         * TODO clean up logic
-         */
-        if ($this->baseType !== null && $other->baseType !== null) {
-            if (is_a($other->baseType, $this->baseType)) {
-                $this->baseType = $other->baseType;
-            } elseif ($this->baseType !== $other->baseType && !is_a($this->baseType, $other->baseType)) {
-                throw new GeneratorException(
-                    "Incompatible base types in merge: $this->baseType and $other->baseType"
-                );
-            }
-        } else {
-            throw new GeneratorException(
-                "Incompatible base types in merge: $this->baseType and $other->baseType"
-            );
-        }
-
-        // merge $url properties, taking longest one
-        $thisUrlProps = array_filter(
-            $this->properties,
-            fn(Property $prop) => $prop->getName() === "url"
-        );
-        $thisUrlProp = $thisUrlProps[0] ?? null;
-
-        $otherUrlProps = array_filter(
-            $other->properties,
-            fn(Property $prop) => $prop->getName() === "url"
-        );
-        $otherUrlProp = $otherUrlProps[0] ?? null;
-
-        if ($thisUrlProp && $otherUrlProp) {
-            $base = $thisUrlProp->getDefaultValue();
-            assert($base !== null, new GeneratorException('`$url` property should be defined with default value'));
-            $base = substr($base, 1, strlen($base) - 2);
-            $extension = $otherUrlProp->getDefaultValue();
-            assert($extension !== null, new GeneratorException('`$url` property should be defined with default value'));
-            $extension = substr($extension, 1, strlen($extension) - 2);
-            if ($base !== $extension) {
-                if (strlen($base) > strlen($extension)) {
-                    $temp = $base;
-                    $base = $extension;
-                    $extension = $temp;
-                }
-                Logger::log(
-                    "Merging $base and $extension into one endpoint",
-                    Logger::WARNING
-                );
-
-                $this->removeProperty($thisUrlProp);
-                $other->removeProperty($otherUrlProp);
-                $this->addProperty(
-                    Property::protectedStatic("url", "string", null, "\"$extension\"")
-                );
-            } else {
-                $other->removeProperty($otherUrlProp);
-            }
-        }
-
-        // testing to make sure there are no other duplicate properties
-        $thisProperties = array_map(
-            fn(Property $p) => $p->getName(),
-            $this->properties
-        );
-        $otherProperties = array_map(
-            fn(Property $p) => $p->getName(),
-            $other->properties
-        );
-        $duplicateProperties = array_intersect($thisProperties, $otherProperties);
-        /** @psalm-suppress RedundantConditionGivenDocblockType */
-        assert(
-            count($duplicateProperties) === 0,
-            new GeneratorException(
-                "Duplicate properties in merge: " .
-                var_export($duplicateProperties, true)
-            )
-        );
-
-        $thisMethods = array_map(fn(Method $m) => $m->getName(), $this->methods);
-        $otherMethods = array_map(fn(Method $m) => $m->getName(), $other->methods);
-        $duplicateMethods = array_intersect($thisMethods, $otherMethods);
-        assert(
-            count($duplicateMethods) === 0,
-            new GeneratorException(
-                "Duplicate methods in merge: " . var_export($duplicateMethods, true)
-            )
-        );
-
-        $this->description = join(PHP_EOL, [
-          $this->description,
-          $other->description,
-        ]);
-        $this->uses = array_merge($this->uses, $other->uses);
-        $this->properties = array_merge($this->properties, $other->properties);
-        $this->methods = array_merge($this->methods, $other->methods);
     }
 }
