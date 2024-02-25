@@ -15,6 +15,7 @@ use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Access;
+use Battis\PHPGenerator\JSStyleMethod;
 use Battis\PHPGenerator\PHPClass;
 use Battis\PHPGenerator\Property as PHPProperty;
 use Battis\PHPGenerator\Type;
@@ -24,7 +25,6 @@ use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\RequestBody;
 use cebe\openapi\spec\Response;
-use cebe\openapi\spec\Schema;
 
 class Endpoint extends Writable
 {
@@ -130,8 +130,8 @@ class Endpoint extends Writable
                       array_map(
                           fn(Parameter $p) => "\"{" .
                           $p->getName() .
-                          "}\" => \$" .
-                          $p->getName(),
+                          "}\" => \$params['" .
+                          $p->getName() . "']",
                           $parameters["path"]
                       )
                   ) .
@@ -188,9 +188,8 @@ class Endpoint extends Writable
                 foreach ($params as $param) {
                     if ($param->isOptional() === false) {
                         $assertions[] =
-                          "assert(\$" .
-                          $param->getName() .
-                          " !== null, new ArgumentException(\"Parameter `" .
+                          "assert(isset(\$params['" .
+                          $param->getName() . "']), new ArgumentException(\"Parameter `" .
                           $param->getName() .
                           "` is required\"));" .
                           PHP_EOL;
@@ -208,7 +207,7 @@ class Endpoint extends Writable
                     );
                 }
 
-                $method = new Method(Access::Public, $operation . $operationSuffix, $params, new ReturnType($type, $resp->description), $body, $op->description, $throws);
+                $method = new JSStyleMethod(Access::Public, $operation . $operationSuffix, $params, new ReturnType($type, $resp->description), $body, $op->description, $throws);
                 $class->addMethod($method);
             }
         }
