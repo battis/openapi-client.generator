@@ -6,7 +6,6 @@ use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
-use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Access;
 use Battis\PHPGenerator\Type;

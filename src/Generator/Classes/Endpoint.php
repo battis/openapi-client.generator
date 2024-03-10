@@ -12,10 +12,8 @@ use Battis\OpenAPI\Generator\Classes\Property;
 use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
-use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Access;
-use Battis\PHPGenerator\JSStyleMethod;
 use Battis\PHPGenerator\PHPClass;
 use Battis\PHPGenerator\Property as PHPProperty;
 use Battis\PHPGenerator\Type;
@@ -35,7 +33,6 @@ class Endpoint extends Writable
         string $url
     ): Endpoint {
         $typeMap = TypeMap::getInstance();
-        $sanitize = Sanitize::getInstance();
 
         $normalizedPath = static::normalizePath($path);
         $dir = dirname($normalizedPath);
@@ -50,20 +47,10 @@ class Endpoint extends Writable
               $dir === null ? [] : explode("/", $dir),
             ]),
             $mapper->getBaseType(),
-            $sanitize->stripHtml($pathItem->description)
+            $pathItem->description
         );
 
         $class->addProperty(new Property(Access::Protected, "url", "string", "Endpoint URL pattern", "\"$url\""));
-
-        // name operations based on path parameters for disambiguation on merge
-        preg_match_all("/\{([^}]+)\}\//", $url, $match, PREG_PATTERN_ORDER);
-        $operationSuffix = Text::snake_case_to_PascalCase(
-            (!empty($match[1]) ? "by_" : "") .
-            join(
-                "_and_",
-                array_map(fn(string $p) => str_replace("_id", "", $p), $match[1])
-            )
-        );
 
         foreach ($mapper->supportedOperations() as $operation) {
             if ($pathItem->$operation) {
@@ -143,8 +130,8 @@ class Endpoint extends Writable
                       array_map(
                           fn(Parameter $p) => "\"" .
                           $p->getName() .
-                          "\" => $" .
-                          $p->getName(),
+                          "\" => \$params['" .
+                          $p->getName() . "']",
                           $parameters["query"]
                       )
                   ) .
@@ -207,7 +194,7 @@ class Endpoint extends Writable
                     );
                 }
 
-                $method = new JSStyleMethod(Access::Public, $operation . $operationSuffix, $params, new ReturnType($type, $resp->description), $body, $op->description, $throws);
+                $method = new JSStyleMethod(Access::Public, static::getMethodNameForOperation($operation, $op, $url, $parameters['path']), $params, new ReturnType($type, $resp->description), $body, $op->description, $throws);
                 $class->addMethod($method);
             }
         }
@@ -264,6 +251,27 @@ class Endpoint extends Writable
             }
         }
         return $parameters;
+    }
+
+    /**
+     * @param string $operation
+     * @param Operation $operationDescription
+     * @param string $url
+     * @param Parameter[] $pathParameters
+     *
+     * @return string
+     *
+     * @psalm-suppress PossiblyUnusedParam
+     */
+    protected static function getMethodNameForOperation(string $operation, Operation $operationDescription, string $url, array $pathParameters): string
+    {
+        if (count($pathParameters) === 0 && strtolower($operation) === 'get') {
+            Logger::log([$operation, $pathParameters, $operation . 'All'], Logger::DEBUG, false);
+            return $operation . 'All';
+        } else {
+            Logger::log([$operation, $pathParameters, $operation . Text::snake_case_to_PascalCase("by_" . join("_and_", array_map(fn(Parameter $p) => $p->getName(), $pathParameters)))], Logger::DEBUG, false);
+            return $operation . Text::snake_case_to_PascalCase("by_" . join("_and_", array_map(fn(Parameter $p) => $p->getName(), $pathParameters)));
+        }
     }
 
     /**

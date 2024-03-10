@@ -91,7 +91,7 @@ class Router extends Writable
                     Property::DOCUMENTATION_ONLY
                 )
             );
-            $class->uses[] = $c->getType();
+            $class->addUses($c->getType());
         }
         return $class;
     }

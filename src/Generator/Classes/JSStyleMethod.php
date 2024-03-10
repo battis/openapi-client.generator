@@ -4,13 +4,9 @@ namespace Battis\OpenAPI\Generator\Classes;
 
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\PHPGenerator\Access;
-use Battis\PHPGenerator\Method as PHPMethod;
+use Battis\PHPGenerator\JSStyleMethod as PHPJSStyleMethod;
 
-/**
- * @api
- * TODO is this even used?
- */
-class Method extends PHPMethod
+class JSStyleMethod extends PHPJSStyleMethod
 {
     /**
      * @param \Battis\PHPGenerator\Access $access
@@ -30,7 +26,7 @@ class Method extends PHPMethod
         ?string $body = null,
         ?string $description = null,
         array $throws = [],
-        int $flags = PHPMethod::NONE
+        int $flags = PHPJSStyleMethod::NONE
     ) {
         $sanitize = Sanitize::getInstance();
         parent::__construct(
