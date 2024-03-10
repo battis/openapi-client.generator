@@ -2,7 +2,7 @@
 
 namespace Battis\OpenAPI\Client;
 
-use Battis\OpenAPI\Client\Client as APIClient;
+use Battis\OpenAPI\Client\Client;
 use Battis\OpenAPI\Client\Exceptions\ClientException;
 use Battis\OpenAPI\Generator\Classes\Endpoint;
 use GuzzleHttp\Client as HttpClient;
@@ -21,12 +21,12 @@ abstract class BaseEndpoint extends Mappable
      */
     protected array $endpoints = [];
 
-    protected APIClient $api;
+    protected Client $api;
     protected ?HttpClient $http = null;
 
     protected static string $EXPECTED_RESPONSE_MIMETYPE = "application/json";
 
-    public function __construct(APIClient $api)
+    public function __construct(Client $api)
     {
         $this->api = $api;
     }
@@ -97,6 +97,7 @@ abstract class BaseEndpoint extends Mappable
      * @param string $name
      *
      * @return ?Endpoint
+     *
      * @psalm-suppress MixedInferredReturnType
      */
     public function __get(string $name): ?Endpoint

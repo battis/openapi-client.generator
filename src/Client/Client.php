@@ -6,38 +6,27 @@ use Battis\OpenAPI\Client\Exceptions\ClientException;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Token\AccessTokenInterface;
-use Psr\SimpleCache\CacheInterface;
 
 /**
  * @api
  */
 class Client
 {
-    // environment variables
-    public const Bb_ACCESS_KEY = "BLACKBAUD_ACCESS_KEY";
-    public const Bb_CLIENT_ID = "BLACKBAUD_CLIENT_ID";
-    public const Bb_CLIENT_SECRET = "BLACKBAUD_CLIENT_SECRET";
-    public const Bb_REDIRECT_URL = "BLACKBAUD_REDIRECT_URL";
-    public const Bb_TOKEN = "BLACKBAUD_API_TOKEN";
-
-    // keys
-    public const OAuth2_STATE = "oauth2_state";
-    public const Request_URI = "request_uri";
-
-    // OAuth2 terms
+    // session keys
     public const CODE = "code";
     public const STATE = "state";
     public const AUTHORIZATION_CODE = "authorization_code";
     public const REFRESH_TOKEN = "refresh_token";
+    public const REQUEST_URI = 'request_uri';
 
     private AbstractProvider $api;
-    private CacheInterface $cache;
+    private TokenStorage $storage;
 
-    public function __construct(AbstractProvider $api, CacheInterface $cache)
+    public function __construct(AbstractProvider $api, TokenStorage $storage)
     {
         session_start();
         $this->api = $api;
-        $this->cache = $cache;
+        $this->storage = $storage;
     }
 
     public function isReady(): bool
@@ -53,7 +42,7 @@ class Client
     public function getToken($interactive = true)
     {
         /** @var array $cachedToken */
-        $cachedToken = $this->cache->get(self::Bb_TOKEN, true);
+        $cachedToken = $this->storage->getToken();
         $token = $cachedToken ? new AccessToken($cachedToken) : null;
 
         // acquire an API access token
@@ -62,18 +51,18 @@ class Client
                 // interactively acquire a new access token
                 if (false === isset($_GET[self::CODE])) {
                     $authorizationUrl = $this->api->getAuthorizationUrl();
-                    $_SESSION[self::OAuth2_STATE] = $this->api->getState();
+                    $_SESSION[self::STATE] = $this->api->getState();
                     // TODO wipe existing token?
-                    $this->cache->set(self::Request_URI, $_SERVER["REQUEST_URI"] ?? null);
+                    $_SESSION[self::REQUEST_URI] = $_SERVER["REQUEST_URI"] ?? null;
                     header("Location: $authorizationUrl");
                     exit();
                 } elseif (
                     !isset($_GET[self::STATE]) ||
-                    (isset($_SESSION[self::OAuth2_STATE]) &&
-                      $_GET[self::STATE] !== $_SESSION[self::OAuth2_STATE])
+                    (isset($_SESSION[self::STATE]) &&
+                      $_GET[self::STATE] !== $_SESSION[self::STATE])
                 ) {
-                    if (isset($_SESSION[self::OAuth2_STATE])) {
-                        unset($_SESSION[self::OAuth2_STATE]);
+                    if (isset($_SESSION[self::STATE])) {
+                        unset($_SESSION[self::STATE]);
                     }
 
                     throw new ClientException(
@@ -83,7 +72,7 @@ class Client
                     $token = $this->api->getAccessToken(self::AUTHORIZATION_CODE, [
                       self::CODE => $_GET[self::CODE],
                     ]);
-                    $this->cache->set(self::Bb_TOKEN, $token);
+                    $this->storage->setToken($token);
                 }
             } else {
                 return null;
@@ -94,7 +83,7 @@ class Client
               self::REFRESH_TOKEN => $token->getRefreshToken(),
             ]);
             // FIXME need to handle _not_ being able to refresh!
-            $this->cache->set(self::Bb_TOKEN, $newToken);
+            $this->storage->setToken($newToken);
             $token = $newToken;
         }
 
@@ -105,7 +94,7 @@ class Client
     {
         self::getToken();
         /** @var string $uri */
-        $uri = $this->cache->get(self::Request_URI) ?? "/";
+        $uri = $_SESSION[self::REQUEST_URI] ?? "/";
         header("Location: $uri");
         exit();
     }
