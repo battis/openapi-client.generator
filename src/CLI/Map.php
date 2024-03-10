@@ -78,7 +78,13 @@ class Map extends CLI
         bool $delete = false
     ): void {
         Logger::log("Scanning $path");
-        foreach (scandir($path) as $item) {
+        if (is_file($path)) {
+            $items = [basename($path)];
+            $path = dirname($path);
+        } else {
+            $items = scandir($path);
+        }
+        foreach ($items as $item) {
             $specPath = Path::join($path, $item);
             if (preg_match("/.*\\.(json|ya?ml)/i", $item)) {
                 Logger::log("Parsing $specPath");
