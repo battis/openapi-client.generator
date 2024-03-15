@@ -34,31 +34,48 @@ class TypeMap
     {
         $this->openAPIToPHP = [
             'string' => function (Schema $schema): string {
-                /** @psalm-suppress RedundantConditionGivenDocblockType actually, it can be null, pull request to \cebe\openapi? */
                 if ($schema->enum !== null) {
-                    return join("|", array_map(fn(string $value) => "\"$value\"", $schema->enum));
+                    return join(
+                        '|',
+                        array_map(
+                            fn(string $value) => "\"$value\"",
+                            $schema->enum
+                        )
+                    );
                 }
-                return "string";
+                return 'string';
             },
             'number' => fn(): string => 'float',
             'integer' => fn(): string => 'int',
             'boolean' => fn(): string => 'bool',
             'array' => function (Schema $schema): string {
-                assert($schema->items !== null, new SchemaException("{$schema->title}->items not defined"));
+                assert(
+                    $schema->items !== null,
+                    new SchemaException("{$schema->title}->items not defined")
+                );
                 return $this->getFQNFromSchema($schema->items) . '[]';
             },
             'object' => function (Schema $schema): string {
                 $properties = [];
-                foreach($schema->properties as $name => $property) {
-                    $propertyType = new Type($this->getFQNFromSchema($property));
-                    $properties[] = "$name: " . $propertyType->as(Type::ABSOLUTE);
+                foreach ($schema->properties as $name => $property) {
+                    $propertyType = new Type(
+                        $this->getFQNFromSchema($property)
+                    );
+                    $properties[] =
+                        "$name: " . $propertyType->as(Type::ABSOLUTE);
                 }
 
-                if ($schema->additionalProperties !== true && $schema->additionalProperties !== false) {
-                    $properties[] = "...<string, " . $this->getFQNFromSchema($schema->additionalProperties) . ">";
+                if (
+                    $schema->additionalProperties !== true &&
+                    $schema->additionalProperties !== false
+                ) {
+                    $properties[] =
+                        '...<string, ' .
+                        $this->getFQNFromSchema($schema->additionalProperties) .
+                        '>';
                 }
 
-                return "array{" . join(", ", $properties) . "}";
+                return 'array{' . join(', ', $properties) . '}';
             },
         ];
     }
@@ -107,10 +124,18 @@ class TypeMap
     {
         if ($schema instanceof Reference) {
             $type = $this->getTypeFromReference($schema->getReference());
-            assert($type !== null, new SchemaException("Reference `" . $schema->getReference() . "` not registered"));
+            assert(
+                $type !== null,
+                new SchemaException(
+                    'Reference `' . $schema->getReference() . '` not registered'
+                )
+            );
             return $type->as(Type::FQN);
         }
-        assert(array_key_exists($schema->type, $this->openAPIToPHP), new SchemaException("Unknown schema type `$schema->type`"));
+        assert(
+            array_key_exists($schema->type, $this->openAPIToPHP),
+            new SchemaException("Unknown schema type `$schema->type`")
+        );
         return $this->openAPIToPHP[$schema->type]($schema);
     }
 }

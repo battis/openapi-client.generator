@@ -14,7 +14,7 @@ use JsonSerializable;
  */
 abstract class BaseEndpoint extends Mappable
 {
-    protected string $url = "";
+    protected string $url = '';
 
     /**
      * @var array<string, class-string<\Battis\OpenAPI\Generator\Classes\Endpoint>> $endpoints
@@ -24,7 +24,7 @@ abstract class BaseEndpoint extends Mappable
     protected Client $api;
     protected ?HttpClient $http = null;
 
-    protected static string $EXPECTED_RESPONSE_MIMETYPE = "application/json";
+    protected static string $EXPECTED_RESPONSE_MIMETYPE = 'application/json';
 
     public function __construct(Client $api)
     {
@@ -55,7 +55,7 @@ abstract class BaseEndpoint extends Mappable
         assert(
             $token !== null,
             new ClientException(
-                "No valid token available, must interactively authenticate"
+                'No valid token available, must interactively authenticate'
             )
         );
 
@@ -70,9 +70,9 @@ abstract class BaseEndpoint extends Mappable
                 array_values($pathParameters),
                 $this->url
             ) .
-            "?" .
-            http_build_query($queryParameters),
-            ["Authentication" => "Bearer $token"],
+                '?' .
+                http_build_query($queryParameters),
+            ['Authentication' => "Bearer $token"],
             $body
         );
 
@@ -82,9 +82,9 @@ abstract class BaseEndpoint extends Mappable
 
         return $this->decodeResponse(
             $this->http
-            ->send($request)
-            ->getBody()
-            ->getContents()
+                ->send($request)
+                ->getBody()
+                ->getContents()
         );
     }
 
@@ -97,24 +97,25 @@ abstract class BaseEndpoint extends Mappable
      * @param string $name
      *
      * @return ?Endpoint
-     *
-     * @psalm-suppress MixedInferredReturnType
      */
     public function __get(string $name): ?Endpoint
     {
         if (array_key_exists($name, $this->endpoints)) {
             $instance = "_$name";
-            assert(property_exists($this, $instance), new ClientException("Expected router property `$instance` not present"));
+            assert(
+                property_exists($this, $instance),
+                new ClientException(
+                    "Expected router property `$instance` not present"
+                )
+            );
             if ($this->$instance === null) {
                 $class = $this->endpoints[$name];
-                /** @psalm-suppress UnsafeInstantiation */
                 $this->$instance = new $class($this->api);
             }
-            /** @psalm-suppress MixedReturnStatement */
             return $this->$instance;
         }
         trigger_error(
-            "Undefined property: " . static::class . "::$name",
+            'Undefined property: ' . static::class . "::$name",
             E_USER_WARNING
         );
         return null;

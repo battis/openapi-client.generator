@@ -31,19 +31,22 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
     {
         $this->data = $data;
         foreach (static::$fields as $property => $type) {
-            if (strpos($type, "\\") !== false) {
+            if (strpos($type, '\\') !== false) {
                 /** @var class-string<\Battis\OpenAPI\Client\BaseComponent> $type */
-                if (strpos($type, "[]") !== false) {
+                if (strpos($type, '[]') !== false) {
                     assert(
                         is_array($this->data[$property]),
-                        new ClientException("`$property` declared as array ($type)")
+                        new ClientException(
+                            "`$property` declared as array ($type)"
+                        )
                     );
                     /** @var class-string<\Battis\OpenAPI\Client\BaseComponent> $type */
                     $type = preg_replace("/(.+)\\[\\]$/", "$1", $type);
-                    /** @psalm-suppress UnsafeInstantiation */
-                    $this->data[$property] = array_map(fn($elt) => new $type($elt), $this->data[$property]);
+                    $this->data[$property] = array_map(
+                        fn($elt) => new $type($elt),
+                        $this->data[$property]
+                    );
                 } else {
-                    /** @psalm-suppress UnsafeInstantiation */
                     $this->data[$property] = new $type($this->data[$property]);
                 }
             }
@@ -65,7 +68,7 @@ abstract class BaseComponent extends Mappable implements JsonSerializable
             }
         }
         trigger_error(
-            "Undefined property: " . static::class . "::$name",
+            'Undefined property: ' . static::class . "::$name",
             E_USER_WARNING
         );
         return null;

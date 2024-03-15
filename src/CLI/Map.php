@@ -18,7 +18,6 @@ use splitbrain\phpcli\CLI;
 use splitbrain\phpcli\Options;
 
 /**
- * @psalm-suppress PropertyNotSetInConstructor $bin inherited from CLI
  * @api
  */
 class Map extends CLI
@@ -106,7 +105,6 @@ class Map extends CLI
     }
 
     /**
-     * @psalm-suppress PossiblyUnusedParam $specPath, $spec
      * @api
      */
     protected function getBasePathFromSpec(
@@ -118,7 +116,6 @@ class Map extends CLI
     }
 
     /**
-     * @psalm-suppress PossiblyUnusedParam $specPath, $spec
      * @api
      */
     protected function getNamespaceFromSpec(
@@ -178,7 +175,6 @@ class Map extends CLI
 
         /**
          * tidy up the PHP to make it all pretty
-         * @psalm-suppress ForbiddenCode shell_exec
          */
         shell_exec(
             Path::join(getcwd(), '/vendor/bin/php-cs-fixer') .

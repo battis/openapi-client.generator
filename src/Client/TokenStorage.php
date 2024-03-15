@@ -10,7 +10,7 @@ class TokenStorage
      * Retrieve access token from persistent storage
      *
      * @return ?AccessTokenInterface
-          */
+     */
     public function getToken(): ?AccessTokenInterface
     {
         return null;
@@ -22,8 +22,6 @@ class TokenStorage
      * @param AccessTokenInterface $token
      *
      * @return bool `true` if the token was successfully saved, false otherwise
-     *
-     * @psalm-suppress PossiblyUnusedParam, PossiblyUnusedReturnValue
      */
     public function setToken(AccessTokenInterface $token): bool
     {
