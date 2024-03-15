@@ -27,7 +27,7 @@ class Map extends CLI
     {
         parent::__construct();
         if ($logger === null) {
-            $logger = new Monolog\Logger("console");
+            $logger = new Monolog\Logger('console');
             $handler = new ErrorLogHandler();
             $handler->setFormatter(new CliFormatter());
             $logger->pushHandler($handler);
@@ -38,23 +38,23 @@ class Map extends CLI
     protected function setup(Options $options)
     {
         $options->registerOption(
-            "delete-previous",
-            "Delete previous mapping",
-            "d"
+            'delete-previous',
+            'Delete previous mapping',
+            'd'
         );
         $options->registerArgument(
-            "OpenAPI-spec",
-            "The path to an OpenAPI YAML or JSON file",
+            'OpenAPI-spec',
+            'The path to an OpenAPI YAML or JSON file',
             true
         );
         $options->registerArgument(
-            "map-dest",
-            "The path where the mapping should be generated",
+            'map-dest',
+            'The path where the mapping should be generated',
             true
         );
         $options->registerArgument(
-            "namespace",
-            "The namespace within which the mapping should be generated",
+            'namespace',
+            'The namespace within which the mapping should be generated',
             true
         );
     }
@@ -67,7 +67,7 @@ class Map extends CLI
             $args[0],
             $args[1],
             $args[2],
-            (bool) $options->getOpt("delete-previous", false)
+            (bool) $options->getOpt('delete-previous', false)
         );
     }
 
@@ -86,16 +86,20 @@ class Map extends CLI
         }
         foreach ($items as $item) {
             $specPath = Path::join($path, $item);
-            if (preg_match("/.*\\.(json|ya?ml)/i", $item)) {
+            if (preg_match('/.*\\.(json|ya?ml)/i', $item)) {
                 Logger::log("Parsing $specPath");
                 $spec = Specification::from($specPath);
                 $this->generateMapping(
                     $spec,
                     $this->getBasePathFromSpec($specPath, $spec, $basePath),
-                    $this->getNamespaceFromSpec($specPath, $spec, $baseNamespace),
+                    $this->getNamespaceFromSpec(
+                        $specPath,
+                        $spec,
+                        $baseNamespace
+                    ),
                     $delete
                 );
-            } elseif ($item !== "." && $item !== ".." && is_dir($specPath)) {
+            } elseif ($item !== '.' && $item !== '..' && is_dir($specPath)) {
                 $this->scanPath($specPath, $basePath, $baseNamespace, $delete);
             }
         }
@@ -149,9 +153,9 @@ class Map extends CLI
         bool $cleanup = false
     ): void {
         $config = [
-          BaseMapper::SPEC => $spec,
-          BaseMapper::BASE_PATH => $basePath,
-          BaseMapper::BASE_NAMESPACE => $baseNamespace,
+            BaseMapper::SPEC => $spec,
+            BaseMapper::BASE_PATH => $basePath,
+            BaseMapper::BASE_NAMESPACE => $baseNamespace,
         ];
         $components = new ComponentMapper($config);
         $endpoints = new EndpointMapper($config);
@@ -177,7 +181,9 @@ class Map extends CLI
          * @psalm-suppress ForbiddenCode shell_exec
          */
         shell_exec(
-            Path::join(getcwd(), "/vendor/bin/php-cs-fixer") . " fix " . $basePath
+            Path::join(getcwd(), '/vendor/bin/php-cs-fixer') .
+                ' fix ' .
+                $basePath
         );
     }
 }
