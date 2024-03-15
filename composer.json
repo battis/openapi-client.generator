@@ -30,5 +30,8 @@
   },
   "config": {
     "sort-packages": true
+  },
+  "scripts": {
+    "docs": "docker run --rm -v $(pwd):/data phpdoc/phpdoc:3"
   }
 }

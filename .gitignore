@@ -1,8 +1,6 @@
 .DS_Store
 *.cache
 /.cache/
-/coverage/
 /docs/
-/tools/
-/var/
+/node_modules/
 /vendor/

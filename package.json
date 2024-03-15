@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@battis/prettier-config": "latest"
+  },
+  "prettier": "@battis/prettier-config"
+}
