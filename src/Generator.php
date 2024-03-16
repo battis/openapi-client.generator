@@ -1,82 +1,50 @@
 <?php
 
-namespace Battis\OpenAPI\CLI;
+namespace Battis\OpenAPI;
 
 use Battis\DataUtilities\Filesystem;
 use Battis\DataUtilities\Path;
-use Battis\OpenAPI\CLI\Logger;
+use Battis\OpenAPI\Generator\Mappers\ComponentMapperFactory;
 use Battis\OpenAPI\Generator\Mappers\BaseMapper;
-use Battis\OpenAPI\Generator\Mappers\ComponentMapper;
-use Battis\OpenAPI\Generator\Mappers\EndpointMapper;
+use Battis\OpenAPI\Generator\Mappers\EndpointMapperFactory;
 use Battis\OpenAPI\Generator\Specification;
 use cebe\openapi\spec\OpenApi;
 use Monolog\Handler\ErrorLogHandler;
-use Monolog;
+use Monolog\Logger;
 use pahanini\Monolog\Formatter\CliFormatter;
 use Psr\Log\LoggerInterface;
-use splitbrain\phpcli\CLI;
-use splitbrain\phpcli\Options;
 
-/**
- * @api
- */
-class Map extends CLI
+class Generator
 {
-    public function __construct(?LoggerInterface $logger = null)
+    public static function getDefaultLogger()
     {
-        parent::__construct();
-        if ($logger === null) {
-            $logger = new Monolog\Logger('console');
-            $handler = new ErrorLogHandler();
-            $handler->setFormatter(new CliFormatter());
-            $logger->pushHandler($handler);
-        }
-        Logger::init($logger);
+        $logger = new Logger('console');
+        $handler = new ErrorLogHandler();
+        $handler->setFormatter(new CliFormatter());
+        $logger->pushHandler($handler);
+        return $logger;
     }
 
-    protected function setup(Options $options)
-    {
-        $options->registerOption(
-            'delete-previous',
-            'Delete previous mapping',
-            'd'
-        );
-        $options->registerArgument(
-            'OpenAPI-spec',
-            'The path to an OpenAPI YAML or JSON file',
-            true
-        );
-        $options->registerArgument(
-            'map-dest',
-            'The path where the mapping should be generated',
-            true
-        );
-        $options->registerArgument(
-            'namespace',
-            'The namespace within which the mapping should be generated',
-            true
-        );
-    }
+    private LoggerInterface $logger;
+    private ComponentMapperFactory $componentMapperFactory;
+    private EndpointMapperFactory $endpointMapperFactory;
 
-    protected function main(Options $options)
-    {
-        /** @var string[] $args */
-        $args = $options->getArgs();
-        $this->scanPath(
-            $args[0],
-            $args[1],
-            $args[2],
-            (bool) $options->getOpt('delete-previous', false)
-        );
+    public function __construct(
+        ComponentMapperFactory $componentMapperFactory,
+        EndpointMapperFactory $endpointMapperFactory,
+        LoggerInterface $logger
+    ) {
+        $this->logger = $logger;
+        $this->componentMapperFactory = $componentMapperFactory;
+        $this->endpointMapperFactory = $endpointMapperFactory;
     }
-
-    protected function scanPath(
+    public function generate(
         string $path,
         string $basePath,
         string $baseNamespace,
         bool $delete = false
     ): void {
-        Logger::log("Scanning $path");
+        $this->logger->info("Scanning $path");
         if (is_file($path)) {
             $items = [basename($path)];
             $path = dirname($path);
@@ -86,7 +54,7 @@ class Map extends CLI
         foreach ($items as $item) {
             $specPath = Path::join($path, $item);
             if (preg_match('/.*\\.(json|ya?ml)/i', $item)) {
-                Logger::log("Parsing $specPath");
+                $this->logger->info("Parsing $specPath");
                 $spec = Specification::from($specPath);
                 $this->generateMapping(
                     $spec,
@@ -99,7 +67,7 @@ class Map extends CLI
                     $delete
                 );
             } elseif ($item !== '.' && $item !== '..' && is_dir($specPath)) {
-                $this->scanPath($specPath, $basePath, $baseNamespace, $delete);
+                $this->generate($specPath, $basePath, $baseNamespace, $delete);
             }
         }
     }
@@ -129,14 +97,14 @@ class Map extends CLI
     public function cleanup(string $path): void
     {
         if (file_exists($path)) {
-            Logger::log("Deleting contents of $path", Logger::WARNING);
+            $this->logger->warning("Deleting contents of $path");
             if (file_exists($path)) {
                 foreach (Filesystem::safeScandir($path) as $item) {
                     $filePath = Path::join($path, $item);
                     if (FileSystem::delete($filePath, true)) {
-                        Logger::log("$filePath deleted", Logger::WARNING);
+                        $this->logger->warning("$filePath deleted");
                     } else {
-                        Logger::log("Error deleting $filePath", Logger::ERROR);
+                        $this->logger->error("Error deleting $filePath");
                     }
                 }
             }
@@ -154,8 +122,8 @@ class Map extends CLI
             BaseMapper::BASE_PATH => $basePath,
             BaseMapper::BASE_NAMESPACE => $baseNamespace,
         ];
-        $components = new ComponentMapper($config);
-        $endpoints = new EndpointMapper($config);
+        $components = $this->componentMapperFactory->create($config);
+        $endpoints = $this->endpointMapperFactory->create($config);
 
         // generate the PHP classes in memory
         $components->generate();

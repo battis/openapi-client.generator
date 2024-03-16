@@ -3,50 +3,20 @@
 namespace Battis\OpenAPI\Generator\Mappers;
 
 use Battis\DataUtilities\Path;
-use Battis\OpenAPI\CLI\Logger;
 use Battis\OpenAPI\Client\BaseEndpoint;
-use Battis\OpenAPI\Generator\Classes\Endpoint;
+use Battis\OpenAPI\Generator\Classes\EndpointFactory;
 use Battis\OpenAPI\Generator\Classes\NamespaceCollection;
 use Battis\OpenAPI\Generator\Classes\Router;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
 use Battis\PHPGenerator\Type;
+use Psr\Log\LoggerInterface;
 
 /**
  * @api
  */
 class EndpointMapper extends BaseMapper
 {
-    /**
-     * @return string[]
-     */
-    public function supportedOperations(): array
-    {
-        return [
-          "get",
-          "put",
-          "post",
-          "delete",
-          "options",
-          "head",
-          "patch",
-          "trace",
-        ];
-    }
-
-    public function expectedContentType(): string
-    {
-        return "application/json";
-    }
-
-    public function subnamespace(): string
-    {
-        return "Endpoints";
-    }
-
-    public function rootRouterName(): string
-    {
-        return "Client";
-    }
+    private EndpointFactory $endpointFactory;
 
     /**
      * @param array{
@@ -56,24 +26,64 @@ class EndpointMapper extends BaseMapper
      *     baseType?: \Battis\PHPGenerator\Type,
      *   } $config
      */
-    public function __construct(array $config)
-    {
+    public function __construct(
+        array $config,
+        EndpointFactory $endpointFactory,
+        LoggerInterface $logger
+    ) {
         $config[self::BASE_TYPE] ??= new Type(BaseEndpoint::class);
         $config[self::BASE_PATH] = Path::join(
             $config[self::BASE_PATH],
             $this->subnamespace()
         );
-        $config[self::BASE_NAMESPACE] = Path::join("\\", [
-          $config[self::BASE_NAMESPACE],
-          $this->subnamespace(),
+        $config[self::BASE_NAMESPACE] = Path::join('\\', [
+            $config[self::BASE_NAMESPACE],
+            $this->subnamespace(),
         ]);
-        parent::__construct($config);
+        parent::__construct($config, $logger);
         assert(
             $this->getBaseType()->is_a(BaseEndpoint::class),
             new ConfigurationException(
-                "`" . self::BASE_TYPE . "` must be instance of " . BaseEndpoint::class
+                '`' .
+                    self::BASE_TYPE .
+                    '` must be instance of ' .
+                    BaseEndpoint::class
             )
         );
+
+        $this->endpointFactory = $endpointFactory;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function supportedOperations(): array
+    {
+        return [
+            'get',
+            'put',
+            'post',
+            'delete',
+            'options',
+            'head',
+            'patch',
+            'trace',
+        ];
+    }
+
+    public function expectedContentType(): string
+    {
+        return 'application/json';
+    }
+
+    public function subnamespace(): string
+    {
+        return 'Endpoints';
+    }
+
+    public function rootRouterName(): string
+    {
+        return 'Client';
     }
 
     public function generate(): void
@@ -82,22 +92,33 @@ class EndpointMapper extends BaseMapper
         foreach ($this->getSpec()->paths as $path => $pathItem) {
             $path = (string) $path;
             $url = Path::join($this->getSpec()->servers[0]->url, $path);
-            $class = Endpoint::fromPathItem($path, $pathItem, $this, $url);
-            $sibling = $this->classes->getClass($class->getType()->as(Type::FQN));
+            $class = $this->endpointFactory->fromPathItem(
+                $path,
+                $pathItem,
+                $this,
+                $url
+            );
+            $sibling = $this->classes->getClass(
+                $class->getType()->as(Type::FQN)
+            );
             if ($sibling !== null) {
                 $sibling->mergeWith($class);
-                Logger::log("Merged into " . $sibling->getType()->as(Type::FQN));
+                $this->logger->info(
+                    'Merged into ' . $sibling->getType()->as(Type::FQN)
+                );
             } else {
                 $this->classes->addClass($class);
-                Logger::log("Generated " . $class->getType()->as(Type::FQN));
+                $this->logger->info(
+                    'Generated ' . $class->getType()->as(Type::FQN)
+                );
             }
         }
 
         // generate router classes to group endpoints conveniently
         $this->generateRouters($this->classes);
-        $parts = explode("\\", $this->getBaseNamespace());
+        $parts = explode('\\', $this->getBaseNamespace());
         array_pop($parts);
-        $collection = new NamespaceCollection(join("\\", $parts));
+        $collection = new NamespaceCollection(join('\\', $parts));
         $collection->addClass(
             Router::fromClassList(
                 $this->getBaseNamespace(),
@@ -115,7 +136,7 @@ class EndpointMapper extends BaseMapper
     {
         foreach ($namespace->getSubnamespaces() as $sub) {
             $this->generateRouters($sub);
-            Logger::log("Routing " . $sub->getNamespace());
+            $this->logger->info('Routing ' . $sub->getNamespace());
             $router = Router::fromClassList(
                 $sub->getNamespace(),
                 $sub->getClasses(),
@@ -124,10 +145,14 @@ class EndpointMapper extends BaseMapper
             $sibling = $namespace->getClass($router->getType()->as(Type::FQN));
             if ($sibling !== null) {
                 $sibling->mergeWith($router);
-                Logger::log("Merged into " . $sibling->getType()->as(Type::FQN));
+                $this->logger->info(
+                    'Merged into ' . $sibling->getType()->as(Type::FQN)
+                );
             } else {
                 $namespace->addClass($router);
-                Logger::log("Generated " . $router->getType()->as(Type::FQN));
+                $this->logger->info(
+                    'Generated ' . $router->getType()->as(Type::FQN)
+                );
             }
         }
     }

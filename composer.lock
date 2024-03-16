@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d855c035f6b8365bd25f0a76c017272e",
+    "content-hash": "09bca8486c3b5cc64173bb6b7a3a1fa4",
     "packages": [
         {
             "name": "battis/data-utilities",
@@ -1738,61 +1738,6 @@
                 }
             ],
             "time": "2024-03-02T07:30:33+00:00"
-        },
-        {
-            "name": "splitbrain/php-cli",
-            "version": "1.3.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/splitbrain/php-cli.git",
-                "reference": "844609ef16b8486691b7fd892d54478918f27fe8"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/splitbrain/php-cli/zipball/844609ef16b8486691b7fd892d54478918f27fe8",
-                "reference": "844609ef16b8486691b7fd892d54478918f27fe8",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.3.0"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^8"
-            },
-            "suggest": {
-                "psr/log": "Allows you to make the CLI available as PSR-3 logger"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "splitbrain\\phpcli\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Andreas Gohr",
-                    "email": "andi@splitbrain.org"
-                }
-            ],
-            "description": "Easy command line scripts for PHP with opt parsing and color output. No dependencies",
-            "keywords": [
-                "argparse",
-                "cli",
-                "command line",
-                "console",
-                "getopt",
-                "optparse",
-                "terminal"
-            ],
-            "support": {
-                "issues": "https://github.com/splitbrain/php-cli/issues",
-                "source": "https://github.com/splitbrain/php-cli/tree/1.3.1"
-            },
-            "time": "2024-01-17T12:03:34+00:00"
         },
         {
             "name": "sspat/reserved-words",
