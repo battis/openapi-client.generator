@@ -23,10 +23,7 @@ class TypeMap
     private array $fqnToClass = [];
 
     /**
-     * @var array<string,
-     *        callable(): string |
-     *        callable(\cebe\openapi\spec\Schema): string
-     *      > $schemaTypeToPHPType
+     * @var array<string, callable(): string | callable(\cebe\openapi\spec\Schema): string>
      */
     private array $openAPIToPHP;
 
@@ -106,7 +103,7 @@ class TypeMap
     /**
      * @param string $fqn
      *
-     * @return Writable|null
+     * @return \Battis\OpenAPI\Generator\Classes\Writable|null
      *
      * @api
      */
@@ -116,7 +113,7 @@ class TypeMap
     }
 
     /**
-     * @param \cebe\openapi\spec\Schema|\cebe\openapi\spec\Reference $schema
+     * @param \cebe\openapi\spec\Reference $schema
      *
      * @return string
      */

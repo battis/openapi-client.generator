@@ -16,7 +16,7 @@ use Psr\Log\LoggerInterface;
 
 class Generator
 {
-    public static function getDefaultLogger()
+    public static function getDefaultLogger(): LoggerInterface
     {
         $logger = new Logger('console');
         $handler = new ErrorLogHandler();
@@ -38,6 +38,7 @@ class Generator
         $this->componentMapperFactory = $componentMapperFactory;
         $this->endpointMapperFactory = $endpointMapperFactory;
     }
+
     public function generate(
         string $path,
         string $basePath,
@@ -73,6 +74,14 @@ class Generator
     }
 
     /**
+     * Hook to define base path based on OpenAPI specification (including specification path)
+     *
+     * @param string $specPath
+     * @param OpenApi $spec
+     * @param string $basePath
+     *
+     * @return string
+     *
      * @api
      */
     protected function getBasePathFromSpec(
@@ -84,6 +93,14 @@ class Generator
     }
 
     /**
+     * Hook to define namespace based on OpenAPI specification (including specification path)
+     *
+     * @param string $specPath
+     * @param OpenApi $spec
+     * @param string $baseNamespace
+     *
+     * @return string
+     *
      * @api
      */
     protected function getNamespaceFromSpec(
@@ -94,7 +111,7 @@ class Generator
         return $baseNamespace;
     }
 
-    public function cleanup(string $path): void
+    private function purge(string $path): void
     {
         if (file_exists($path)) {
             $this->logger->warning("Deleting contents of $path");
@@ -115,7 +132,7 @@ class Generator
         OpenApi $spec,
         string $basePath,
         string $baseNamespace,
-        bool $cleanup = false
+        bool $purge = false
     ): void {
         $config = [
             BaseMapper::SPEC => $spec,
@@ -130,8 +147,8 @@ class Generator
         $endpoints->generate();
 
         // clean up last run if requested
-        if ($cleanup) {
-            $this->cleanup($basePath);
+        if ($purge) {
+            $this->purge($basePath);
         }
 
         /*
