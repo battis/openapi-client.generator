@@ -17,11 +17,5 @@
       <visibility>protected</visibility>
       <include-source>false</include-source>
     </api>
-    <guide>
-      <source dsn=".">
-        <path>docs/.guide</path>
-      </source>
-      <output>foo</output>
-    </guide>
   </version>
 </phpdocumentor>
