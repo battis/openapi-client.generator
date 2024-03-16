@@ -20,5 +20,12 @@
       <include-source>false</include-source>
       <default-package-name>Battis\OpenAPI</default-package-name>
     </api>
+    <guide>
+      <source dsn=".">
+        <path>docs/guide</path>
+      </source>
+      <output>guide</output>
+    </guide>
   </version>
+  <setting name="guides.enabled" value="true" />
 </phpdocumentor>

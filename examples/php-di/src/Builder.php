@@ -32,7 +32,7 @@ class Builder
         $generator = $container->get(Generator::class);
 
         // build our clients
-        $generator(
+        $generator->geenrate(
             __DIR__ . '/../var', // scan recursively for the specs in /var
 
             // build clients in Example\Client namespace

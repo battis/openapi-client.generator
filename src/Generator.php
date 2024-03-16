@@ -14,8 +14,16 @@ use Monolog\Logger;
 use pahanini\Monolog\Formatter\CliFormatter;
 use Psr\Log\LoggerInterface;
 
+/**
+ * Main entry point for generating a PHP client from an OpenAPI specification
+ */
 class Generator
 {
+    /**
+     * A default logger suggested for use with the Generator
+     *
+     * @return LoggerInterface A color-coded console logger
+     */
     public static function getDefaultLogger(): LoggerInterface
     {
         $logger = new Logger('console');
@@ -29,6 +37,15 @@ class Generator
     private ComponentMapperFactory $componentMapperFactory;
     private EndpointMapperFactory $endpointMapperFactory;
 
+    /**
+     * Meant for autowired dependency-injection
+     *
+     * @see
+     *
+     * @param ComponentMapperFactory $componentMapperFactory
+     * @param EndpointMapperFactory $endpointMapperFactory
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         ComponentMapperFactory $componentMapperFactory,
         EndpointMapperFactory $endpointMapperFactory,
