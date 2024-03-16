@@ -9,8 +9,8 @@
  * ```json
  * {
  *   "scripts": {
- *     "generate-error": "Example\\Builder::build",
- *     "runs-without-error: "runner Example\\Builder::build"
+ *     "generates-error": "Example\\Builder::build",
+ *     "runs-without-error: "./runner Example\\Builder::build"
  *   }
  * }
  */

@@ -11,7 +11,7 @@
   "scripts": {
     "docs": "docker run --rm -v $(pwd):/data phpdoc/phpdoc:3",
     "build": [
-      "runner Example\\Builder::build",
+      "./runner Example\\Builder::build",
       "@docs"
     ]
   }
