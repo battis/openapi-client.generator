@@ -1,0 +1,7 @@
+/.nova                      export-ignore
+/.php-cs-fixer.dist.php     export-ignore
+/.pre-commit-config.yaml    export-ignore
+/examples                   export-ignore
+/package.json               export-ignore
+/phpdoc.dist.xml            export-ignore
+/pnpm-lock.yaml             export-ignore

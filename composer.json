@@ -32,5 +32,11 @@
   },
   "scripts": {
     "docs": "docker run --rm -v $(pwd):/data phpdoc/phpdoc:3"
+  },
+  "require-dev": {
+    "clean/phpdoc-md": "^0.19.3"
+  },
+  "suggest": {
+    "php-di/php-di": "Easier configuration and extension using dependency injection"
   }
 }
