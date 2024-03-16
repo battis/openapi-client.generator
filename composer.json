@@ -31,7 +31,10 @@
     "sort-packages": true
   },
   "scripts": {
-    "docs": "docker run --rm -v $(pwd):/data phpdoc/phpdoc:3"
+    "docs": [
+      "rm -rf docs/latest/*",
+      "docker run --rm -v $(pwd):/data phpdoc/phpdoc:3"
+    ]
   },
   "require-dev": {
     "clean/phpdoc-md": "^0.19.3"
