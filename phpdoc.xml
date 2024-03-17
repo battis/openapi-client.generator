@@ -16,9 +16,10 @@
       <source dsn=".">
         <path>src</path>
       </source>
-      <visibility>protected</visibility>
       <include-source>false</include-source>
       <default-package-name>Battis\OpenAPI</default-package-name>
+      <visibility>protected</visibility>
+      <visibility>public</visibility>
     </api>
     <guide>
       <source dsn=".">

@@ -15,12 +15,12 @@ use pahanini\Monolog\Formatter\CliFormatter;
 use Psr\Log\LoggerInterface;
 
 /**
- * Main entry point for generating a PHP client from an OpenAPI specification
+ * Generate PHP client(s) from OpenAPI specification(s)
  */
 class Generator
 {
     /**
-     * A default logger suggested for use with the Generator
+     * Pre-configured console logger
      *
      * @return LoggerInterface A color-coded console logger
      */
@@ -40,7 +40,7 @@ class Generator
     /**
      * Meant for autowired dependency-injection
      *
-     * @see
+     * @see https://battis.github.io/openapi-client-generator/latest/guide/basic.html for example
      *
      * @param ComponentMapperFactory $componentMapperFactory
      * @param EndpointMapperFactory $endpointMapperFactory
@@ -56,11 +56,27 @@ class Generator
         $this->endpointMapperFactory = $endpointMapperFactory;
     }
 
+    /**
+     * Generate PHP client(s) from OpenAPI specification(s)
+     *
+     * @param string $path Path to an individual OpenAPI specification file or
+     *   a directory containing OpenAPI specifications. Directories will be
+     *   recursiely spidered to find all specification files.
+     * @param string $basePath Path to the directory in which to create the
+     *   PHP client files
+     * @param string $baseNamespace Namespace within which to generate the PHP
+     *   client objects
+     * @param bool $purge (Optional, default `false`) Purge the `$basePath`
+     *   directory of all contents before writing the generated files (if not
+     *   purged, any conflicting files will be over-written)
+     *
+     * @return void
+     */
     public function generate(
         string $path,
         string $basePath,
         string $baseNamespace,
-        bool $delete = false
+        bool $purge = false
     ): void {
         $this->logger->info("Scanning $path");
         if (is_file($path)) {
@@ -82,7 +98,7 @@ class Generator
                         $spec,
                         $baseNamespace
                     ),
-                    $delete
+                    $purge
                 );
             } elseif ($item !== '.' && $item !== '..' && is_dir($specPath)) {
                 $this->generate($specPath, $basePath, $baseNamespace, $delete);
@@ -91,11 +107,24 @@ class Generator
     }
 
     /**
-     * Hook to define base path based on OpenAPI specification (including specification path)
+     * Define base path to directory within which to generate the PHP client
+     * files.
      *
-     * @param string $specPath
-     * @param OpenApi $spec
-     * @param string $basePath
+     * Override to define a base path for client file creation based on a
+     * combination of the specification itself, the path to the specification
+     * and the originally passed `$basePath` argument. For example: suppose
+     * you are generating clients on a nested directory of OpenAPI
+     * specifications and want the clients to mirror the directory structure
+     * of the nested specifications.
+     *
+     * **Defaults to the `$basePath` argument passed to `generate()`**
+     *
+     * @see \Battis\OpenAPI\Generator::generate()
+     *
+     * @param string $specPath Path to an individual OpenAPI specification file
+     * @param OpenApi $spec OpenAPI specification
+     * @param string $basePath Path to the directory in which to create the
+     *   PHP client files (`$basePath` argument passed to `generate()`)
      *
      * @return string
      *
@@ -110,11 +139,19 @@ class Generator
     }
 
     /**
-     * Hook to define namespace based on OpenAPI specification (including specification path)
+     * Define base namespace to directory within which to generate the PHP client
+     * objects.
      *
-     * @param string $specPath
-     * @param OpenApi $spec
-     * @param string $baseNamespace
+     * **Defaults to the `$baseNamespace` argument passed to `generate()`**
+     *
+     * @see \Battis\OpenAPI\Generator::getBasePathFromSpec() for proposed usage
+     * @see \Battis\OpenAPI\Generator::generate()
+     * @see https://battis.github.io/openapi-client-generator/latest/guide/extending.html for example
+     *
+     * @param string $specPath Path to an individual OpenAPI specification file
+     * @param OpenApi $spec OpenAPI specification
+     * @param string $baseNamespace Namespace within which to generate the PHP
+     *   client objects (`$baseNamespace` argument passed to `generate()`)
      *
      * @return string
      *
@@ -128,6 +165,13 @@ class Generator
         return $baseNamespace;
     }
 
+    /**
+     * Purge directory contents
+     *
+     * @param string $path Path to directory to purge
+     *
+     * @return void
+     */
     private function purge(string $path): void
     {
         if (file_exists($path)) {
@@ -145,7 +189,21 @@ class Generator
         }
     }
 
-    protected function generateMapping(
+    /**
+     * Generate a mapping from an OpenAPI spec to PHP client
+     *
+     * @param OpenApi $spec OpenAPI specification
+     * @param string $basePath Path to the directory in which to create the
+     *   PHP client files
+     * @param string $baseNamespace Namespace within which to generate the PHP
+     *   client objects
+     * @param bool $purge (Optional, default `false`) Purge the `$basePath`
+     *   directory of all contents before writing the generated files (if not
+     *   purged, any conflicting files will be over-written)
+     *
+     * @return void
+     */
+    private function generateMapping(
         OpenApi $spec,
         string $basePath,
         string $baseNamespace,
