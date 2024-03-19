@@ -10,12 +10,14 @@ use cebe\openapi\spec\OpenApi;
 use function Safe\yaml_parse;
 
 /**
+ * Utility to load OpenAPI specifications
+ *
  * @api
  */
 class Specification
 {
     /**
-     * @api prevent instantiation
+     * No instantiation
      */
     private function __construct() {}
 
@@ -33,6 +35,8 @@ class Specification
      *
      * @throws \Battis\OpenAPI\Generator\Exceptions\ConfigurationException
      *     if the $specification cannot be identified
+     *
+     * @api
      */
     public static function from(string $specification): OpenApi
     {

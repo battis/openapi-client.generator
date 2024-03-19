@@ -16,23 +16,11 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Generate PHP client(s) from OpenAPI specification(s)
+ *
+ * @api
  */
 class Generator
 {
-    /**
-     * Pre-configured console logger
-     *
-     * @return LoggerInterface A color-coded console logger
-     */
-    public static function getDefaultLogger(): LoggerInterface
-    {
-        $logger = new Logger('console');
-        $handler = new ErrorLogHandler();
-        $handler->setFormatter(new CliFormatter());
-        $logger->pushHandler($handler);
-        return $logger;
-    }
-
     private LoggerInterface $logger;
     private ComponentMapperFactory $componentMapperFactory;
     private EndpointMapperFactory $endpointMapperFactory;
@@ -45,6 +33,8 @@ class Generator
      * @param ComponentMapperFactory $componentMapperFactory
      * @param EndpointMapperFactory $endpointMapperFactory
      * @param LoggerInterface $logger
+     *
+     * @api
      */
     public function __construct(
         ComponentMapperFactory $componentMapperFactory,
@@ -54,6 +44,22 @@ class Generator
         $this->logger = $logger;
         $this->componentMapperFactory = $componentMapperFactory;
         $this->endpointMapperFactory = $endpointMapperFactory;
+    }
+
+    /**
+     * Pre-configured console logger
+     *
+     * @return LoggerInterface A color-coded console logger
+     *
+     * @api
+     */
+    public static function getDefaultLogger(): LoggerInterface
+    {
+        $logger = new Logger('console');
+        $handler = new ErrorLogHandler();
+        $handler->setFormatter(new CliFormatter());
+        $logger->pushHandler($handler);
+        return $logger;
     }
 
     /**
@@ -71,6 +77,8 @@ class Generator
      *   purged, any conflicting files will be over-written)
      *
      * @return void
+     *
+     * @api
      */
     public function generate(
         string $path,
@@ -101,7 +109,7 @@ class Generator
                     $purge
                 );
             } elseif ($item !== '.' && $item !== '..' && is_dir($specPath)) {
-                $this->generate($specPath, $basePath, $baseNamespace, $delete);
+                $this->generate($specPath, $basePath, $baseNamespace, $purge);
             }
         }
     }
@@ -112,7 +120,9 @@ class Generator
      *
      * Override to define a base path for client file creation based on a
      * combination of the specification itself, the path to the specification
-     * and the originally passed `$basePath` argument. For example: suppose
+     * and the originally passed `$basePath` argument.
+     *
+     * For example: suppose
      * you are generating clients on a nested directory of OpenAPI
      * specifications and want the clients to mirror the directory structure
      * of the nested specifications.
@@ -120,6 +130,7 @@ class Generator
      * **Defaults to the `$basePath` argument passed to `generate()`**
      *
      * @see \Battis\OpenAPI\Generator::generate()
+     * @see https://battis.github.io/openapi-client-generator/latest/guide/extending.html Example
      *
      * @param string $specPath Path to an individual OpenAPI specification file
      * @param OpenApi $spec OpenAPI specification
@@ -146,7 +157,7 @@ class Generator
      *
      * @see \Battis\OpenAPI\Generator::getBasePathFromSpec() for proposed usage
      * @see \Battis\OpenAPI\Generator::generate()
-     * @see https://battis.github.io/openapi-client-generator/latest/guide/extending.html for example
+     * @see https://battis.github.io/openapi-client-generator/latest/guide/extending.html Example
      *
      * @param string $specPath Path to an individual OpenAPI specification file
      * @param OpenApi $spec OpenAPI specification

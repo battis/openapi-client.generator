@@ -2,6 +2,7 @@
 /.php-cs-fixer.dist.php     export-ignore
 /.pre-commit-config.yaml    export-ignore
 /examples                   export-ignore
+/guide                      export-ignore
 /package.json               export-ignore
-/phpdoc.dist.xml            export-ignore
+/phpdocumentor.xml            export-ignore
 /pnpm-lock.yaml             export-ignore

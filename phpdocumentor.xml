@@ -7,7 +7,7 @@
 >
   <title>OpenAPI Client Generator</title>
   <paths>
-    <output>docs/latest</output>
+    <output>docs</output>
     <cache>.cache/phpdoc</cache>
   </paths>
   <version number="0.2">
@@ -17,13 +17,15 @@
         <path>src</path>
       </source>
       <include-source>false</include-source>
-      <default-package-name>Battis\OpenAPI</default-package-name>
+      <default-package-name>
+        battis\openapi-client-generator
+      </default-package-name>
       <visibility>protected</visibility>
       <visibility>public</visibility>
     </api>
     <guide>
       <source dsn=".">
-        <path>docs/guide</path>
+        <path>guide</path>
       </source>
       <output>guide</output>
     </guide>
