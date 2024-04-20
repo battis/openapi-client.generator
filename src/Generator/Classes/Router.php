@@ -19,15 +19,17 @@ class Router extends Writable
         array $classes,
         EndpointMapper $mapper
     ): Router {
-        $namespaceParts = explode("\\", $namespace);
+        $namespaceParts = explode('\\', $namespace);
         $name = array_pop($namespaceParts);
         $description = "Routing class for the subnamespace `$name`";
-        $namespace = join("\\", $namespaceParts);
-        $baseNamespaceParts = explode("\\", $mapper->getBaseNamespace());
+        $namespace = join('\\', $namespaceParts);
+        $baseNamespaceParts = explode('\\', $mapper->getBaseNamespace());
         if (count($baseNamespaceParts) > count($namespaceParts)) {
-            $namespaceParts = "..";
+            $namespaceParts = '..';
             $name = $mapper->rootRouterName();
-            $description = "Routing class for " . ucfirst(basename(dirname($mapper->getBasePath())));
+            $description =
+                'Routing class for ' .
+                ucfirst(basename(dirname($mapper->getBasePath())));
         } else {
             $namespaceParts = array_slice(
                 $namespaceParts,
@@ -46,39 +48,39 @@ class Router extends Writable
         $class->addProperty(
             new Property(
                 Access::Protected,
-                "endpoints",
-                "array<string, class-string<" .
-                $mapper->getBaseType()->as(Type::ABSOLUTE) .
-                ">>",
-                "Routing subpaths",
-                "[" .
-                PHP_EOL .
-                "    " .
-                join(
-                    "," . PHP_EOL . "    ",
-                    array_map(
-                        fn(Writable $c) => "\"" .
-                        lcfirst($c->getName()) .
-                        "\" => \"" .
-                        $c->getType()->as(Type::ABSOLUTE) .
-                        "\"",
-                        $classes
-                    )
-                ) .
-                PHP_EOL .
-                "]"
+                'endpoints',
+                'array<string, class-string<' .
+                    $mapper->getBaseType()->as(Type::ABSOLUTE) .
+                    '>>',
+                'Routing subpaths',
+                '[' .
+                    PHP_EOL .
+                    '    ' .
+                    join(
+                        ',' . PHP_EOL . '    ',
+                        array_map(
+                            fn(Writable $c) => "\"" .
+                                lcfirst($c->getName()) .
+                                "\" => \"" .
+                                $c->getType()->as(Type::ABSOLUTE) .
+                                "\"",
+                            $classes
+                        )
+                    ) .
+                    PHP_EOL .
+                    ']'
             )
         );
 
         foreach ($classes as $c) {
-            $propName = "_" . lcfirst($c->getName());
+            $propName = '_' . lcfirst($c->getName());
             $class->addProperty(
                 new Property(
                     Access::Protected,
                     $propName,
-                    $c->getType(),
+                    $c->getType()->nullable(),
                     $c->getDescription(),
-                    "null"
+                    'null'
                 )
             );
             $class->addProperty(

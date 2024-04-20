@@ -140,7 +140,7 @@ class EndpointFactory
                 $content = $resp->content;
                 $content = $content[$mapper->expectedContentType()] ?? null;
 
-                $fqn = 'void';
+                $fqn = 'mixed';
                 $type = new Type($fqn);
 
                 if ($content !== null) {
