@@ -1,5 +1,5 @@
 {
-  "name": "battis/openapi-client-generator",
+  "name": "battis/openapi-client.generator",
   "description": "Generate a PHP client for a RESTful API from its OpenAPI description file",
   "require": {
     "battis/data-utilities": "^1.2",
