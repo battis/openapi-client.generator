@@ -3,6 +3,7 @@
   "description": "Generate a PHP client for a RESTful API from its OpenAPI description file",
   "require": {
     "battis/data-utilities": "^1.2",
+    "battis/openapi-client-generator.base": "^0.2",
     "battis/php-generator": "^0.2",
     "cebe/php-openapi": "^1.7",
     "friendsofphp/php-cs-fixer": "^3.49",
@@ -12,8 +13,7 @@
     "pahanini/monolog-cli-formatter": "^2.0",
     "psr/log": "^3.0",
     "psr/simple-cache": "^3.0",
-    "sspat/reserved-words": "^3.0",
-    "symfony/filesystem": "^7.0"
+    "sspat/reserved-words": "^3.0"
   },
   "license": "GPL-3.0",
   "authors": [
@@ -29,12 +29,6 @@
   },
   "config": {
     "sort-packages": true
-  },
-  "scripts": {
-    "docs": [
-      "rm -rf docs/latest/*",
-      "docker run --rm -v $(pwd):/data phpdoc/phpdoc:3 --config docs/phpdoc.xml"
-    ]
   },
   "require-dev": {},
   "suggest": {
