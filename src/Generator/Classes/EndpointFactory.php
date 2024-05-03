@@ -174,9 +174,9 @@ class EndpointFactory
                     join(
                         ',' . PHP_EOL,
                         array_map(
-                            fn(Parameter $p) => "\"{" .
+                            fn(Parameter $p) => "\"" .
                                 $p->getName() .
-                                "}\" => \$params['" .
+                                "\" => \$params['" .
                                 $p->getName() .
                                 "']",
                             $parameters['path']
