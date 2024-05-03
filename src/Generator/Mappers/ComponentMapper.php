@@ -6,12 +6,14 @@ use Battis\DataUtilities\Path;
 use Battis\OpenAPI\Client\BaseComponent;
 use Battis\OpenAPI\Generator\Classes\ComponentFactory;
 use Battis\OpenAPI\Generator\Exceptions\ConfigurationException;
+use Battis\OpenAPI\Generator\Exceptions\GeneratorException;
 use Battis\OpenAPI\Generator\Exceptions\SchemaException;
 use Battis\OpenAPI\Generator\Sanitize;
 use Battis\OpenAPI\Generator\TypeMap;
 use Battis\PHPGenerator\Type;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
+use Exception;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -19,7 +21,19 @@ use Psr\Log\LoggerInterface;
  */
 class ComponentMapper extends BaseMapper
 {
+    public const IS_TRAVERSABLE = 'isTraversable';
+    public const BASE_TRAVERSABLE_TYPE = 'baseTraversableType';
+    public const GET_TRAVERSABLE_PROPERTY_NAME = 'getTraversablePropertyName';
+
     private ComponentFactory $componentFactory;
+
+    private ?Type $baseTraversableType;
+
+    /** @var callable(\cebe\openapi\spec\Schema): bool */
+    private $isTraversable;
+
+    /** @var callable(\cebe\openapi\spec\Schema): string */
+    private $getTraversablePropertyName;
 
     /**
      * @param array{
@@ -27,6 +41,9 @@ class ComponentMapper extends BaseMapper
      *     basePath: string,
      *     baseNamespace: string,
      *     baseType?: \Battis\PHPGenerator\Type,
+     *     isTraversable?: callable(\cebe\openapi\spec\Schema): bool,
+     *     baseTraversableType?: \Battis\PHPGenerator\Type,
+     *     getTraversablePropertyName?: callable(\cebe\openapi\spec\Schema): string
      *   } $config
      */
     public function __construct(
@@ -54,7 +71,63 @@ class ComponentMapper extends BaseMapper
             )
         );
 
-        $this->componentFactory = $componentFactory;
+        if (
+            !empty($config[self::BASE_TRAVERSABLE_TYPE]) ||
+            !empty($config[self::IS_TRAVERSABLE]) ||
+            !empty($config[self::GET_TRAVERSABLE_PROPERTY_NAME])
+        ) {
+            assert(
+                !empty($config[self::BASE_TRAVERSABLE_TYPE]) &&
+                    !empty($config[self::IS_TRAVERSABLE]) &&
+                    !empty($config[self::GET_TRAVERSABLE_PROPERTY_NAME]),
+                new ConfigurationException(
+                    '`' .
+                        self::BASE_TRAVERSABLE_TYPE .
+                        '`, `' .
+                        self::IS_TRAVERSABLE .
+                        '`, and `' .
+                        self::GET_TRAVERSABLE_PROPERTY_NAME .
+                        '` must all be defined together'
+                )
+            );
+            $this->baseTraversableType = $config[self::BASE_TRAVERSABLE_TYPE];
+            assert(
+                $this->getBaseTraversableType()->is_a(BaseComponent::class),
+                new ConfigurationException(
+                    '`' .
+                        self::BASE_TRAVERSABLE_TYPE .
+                        '` must be instance of ' .
+                        BaseComponent::class
+                )
+            );
+            $this->isTraversable = $config[self::IS_TRAVERSABLE];
+            $this->getTraversablePropertyName =
+                $config[self::GET_TRAVERSABLE_PROPERTY_NAME];
+        }
+    }
+
+    public function getBaseTraversableType(): ?Type
+    {
+        return $this->baseTraversableType;
+    }
+
+    public function isTraversable(Schema $schema): bool
+    {
+        if (empty($this->isTraversable)) {
+            return false;
+        }
+        return call_user_func($this->isTraversable, $schema);
+    }
+
+    public function getTraversablePropertyName(Schema $schema): string
+    {
+        assert(
+            !empty($this->getTraversablePropertyName),
+            new GeneratorException(
+                '`' . self::GET_TRAVERSABLE_PROPERTY_NAME . '` undefined'
+            )
+        );
+        return call_user_func($this->getTraversablePropertyName, $schema);
     }
 
     public function subnamespace(): string

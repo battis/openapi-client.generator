@@ -24,6 +24,9 @@ class ComponentMapperFactory
      *     basePath: string,
      *     baseNamespace: string,
      *     baseType?: \Battis\PHPGenerator\Type,
+     *     isTraversable?: callable(\cebe\openapi\spec\Schema): bool,
+     *     baseTraversableType?: \Battis\PHPGenerator\Type,
+     *     getTraversablePropertyName?: callable(\cebe\openapi\spec\Schema): string
      *   } $config
      */
     public function create($config): ComponentMapper

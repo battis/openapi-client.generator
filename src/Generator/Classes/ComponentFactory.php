@@ -45,7 +45,8 @@ class ComponentFactory
         $typeMap = TypeMap::getInstance();
 
         $type = $typeMap->getTypeFromReference($ref);
-        assert($type !== null, new GeneratorException("Unknown scheam `$ref`"));
+        assert($type !== null, new GeneratorException("Unknown schema `$ref`"));
+        $this->logger->info("$ref -> {$type->as(Type::FQN)}");
         $nameParts = explode(
             '\\',
             str_replace(
@@ -56,13 +57,31 @@ class ComponentFactory
         );
         $name = array_pop($nameParts);
         $path = Path::join($nameParts, $name);
+        $traversable = $mapper->isTraversable($schema);
 
         $class = $this->create(
             $path,
             Path::join('\\', [$mapper->getBaseNamespace(), $nameParts]),
-            $mapper->getBaseType(),
+            $traversable
+                ? $mapper->getBaseTraversableType()
+                : $mapper->getBaseType(),
             $schema->description
         );
+
+        if ($traversable) {
+            $class->addMethod(
+                new Method(
+                    Access::Protected,
+                    'getIterableProperty',
+                    [],
+                    'array',
+                    "return \$this->" .
+                        $mapper->getTraversablePropertyName($schema) .
+                        ';',
+                    'The traversable property contained in this component'
+                )
+            );
+        }
 
         $fields = [];
         foreach ($schema->properties as $name => $property) {

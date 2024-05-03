@@ -93,23 +93,34 @@ class Generator
         } else {
             $items = scandir($path);
         }
-        foreach ($items as $item) {
-            $specPath = Path::join($path, $item);
-            if (preg_match('/.*\\.(json|ya?ml)/i', $item)) {
-                $this->logger->info("Parsing $specPath");
-                $spec = Specification::from($specPath);
-                $this->generateMapping(
-                    $spec,
-                    $this->getBasePathFromSpec($specPath, $spec, $basePath),
-                    $this->getNamespaceFromSpec(
-                        $specPath,
+        if (!empty($items)) {
+            foreach ($items as $item) {
+                $specPath = Path::join($path, $item);
+                if (preg_match('/.*\\.(json|ya?ml)/i', $item)) {
+                    $this->logger->info("Parsing $specPath");
+                    $spec = Specification::from($specPath);
+                    $this->generateMapping(
                         $spec,
-                        $baseNamespace
-                    ),
-                    $purge
-                );
-            } elseif ($item !== '.' && $item !== '..' && is_dir($specPath)) {
-                $this->generate($specPath, $basePath, $baseNamespace, $purge);
+                        $this->getBasePathFromSpec($specPath, $spec, $basePath),
+                        $this->getNamespaceFromSpec(
+                            $specPath,
+                            $spec,
+                            $baseNamespace
+                        ),
+                        $purge
+                    );
+                } elseif (
+                    $item !== '.' &&
+                    $item !== '..' &&
+                    is_dir($specPath)
+                ) {
+                    $this->generate(
+                        $specPath,
+                        $basePath,
+                        $baseNamespace,
+                        $purge
+                    );
+                }
             }
         }
     }
@@ -187,14 +198,12 @@ class Generator
     {
         if (file_exists($path)) {
             $this->logger->warning("Deleting contents of $path");
-            if (file_exists($path)) {
-                foreach (Filesystem::safeScandir($path) as $item) {
-                    $filePath = Path::join($path, $item);
-                    if (FileSystem::delete($filePath, true)) {
-                        $this->logger->warning("$filePath deleted");
-                    } else {
-                        $this->logger->error("Error deleting $filePath");
-                    }
+            foreach (Filesystem::safeScandir($path) as $item) {
+                $filePath = Path::join($path, $item);
+                if (FileSystem::delete($filePath, true)) {
+                    $this->logger->warning("$filePath deleted");
+                } else {
+                    $this->logger->error("Error deleting $filePath");
                 }
             }
         }
@@ -248,7 +257,7 @@ class Generator
          * tidy up the PHP to make it all pretty
          */
         shell_exec(
-            Path::join(getcwd(), '/vendor/bin/php-cs-fixer') .
+            Path::join(getcwd() ?: '.', '/vendor/bin/php-cs-fixer') .
                 ' fix ' .
                 $basePath
         );
