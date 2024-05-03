@@ -113,7 +113,7 @@ class TypeMap
     }
 
     /**
-     * @param \cebe\openapi\spec\Schema|\cebe\openapi\spec\Reference $schema
+     * @param \cebe\openapi\spec\Reference $schema
      *
      * @return string
      */
