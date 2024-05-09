@@ -330,7 +330,7 @@ class EndpointFactory
                 $parameters['path'][] = new Parameter(
                     $parameter->name,
                     $fqn,
-                    null,
+                    $parameter->schema->default,
                     $parameter->description,
                     !$parameter->required
                         ? Parameter::NULLABLE
@@ -340,7 +340,7 @@ class EndpointFactory
                 $parameters['query'][] = new Parameter(
                     $parameter->name,
                     $fqn,
-                    null,
+                    $parameter->schema->default,
                     $parameter->description,
                     !$parameter->required
                         ? Parameter::NULLABLE
