@@ -2,18 +2,18 @@
   "name": "battis/openapi-client.generator",
   "description": "Generate a PHP client for a RESTful API from its OpenAPI description file",
   "require": {
-    "battis/data-utilities": "^1.2",
+    "battis/data-utilities": "^1.2-stable",
     "battis/openapi-client.base": "@dev",
     "battis/php-generator": "@dev",
-    "cebe/php-openapi": "^1.7",
-    "friendsofphp/php-cs-fixer": "^3.49",
-    "league/html-to-markdown": "^5.1",
-    "league/oauth2-client": "^2.7",
-    "monolog/monolog": "^3.5",
-    "pahanini/monolog-cli-formatter": "^2.0",
-    "psr/log": "^3.0",
-    "psr/simple-cache": "^3.0",
-    "sspat/reserved-words": "^3.0"
+    "cebe/php-openapi": "^1.7-stable",
+    "friendsofphp/php-cs-fixer": "^3.49-stable",
+    "league/html-to-markdown": "^5.1-stable",
+    "league/oauth2-client": "^2.7-stable",
+    "monolog/monolog": "^3.5-stable",
+    "pahanini/monolog-cli-formatter": "^2.0-stable",
+    "psr/log": "^3.0-stable",
+    "psr/simple-cache": "^3.0-stable",
+    "sspat/reserved-words": "^3.0-stable"
   },
   "license": "GPL-3.0",
   "authors": [
