@@ -170,7 +170,7 @@ class EndpointFactory
                 }
 
                 $pathArg = empty($parameters['path'])
-                    ? []
+                    ? '[]'
                     : "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
                         join(
                             "','",
@@ -181,7 +181,7 @@ class EndpointFactory
                         ) .
                         "']), ARRAY_FILTER_USE_KEY)";
                 $queryArg = empty($parameters['query'])
-                    ? []
+                    ? '[]'
                     : "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
                         join(
                             "','",
