@@ -171,11 +171,23 @@ class EndpointFactory
 
                 $pathArg =
                     "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
-                    join("','", array_keys($parameters['path'])) .
+                    join(
+                        "','",
+                        array_map(
+                            fn(Parameter $p) => $p->getName(),
+                            $parameters['path']
+                        )
+                    ) .
                     "']), ARRAY_FILTER_USE_KEY)";
                 $queryArg =
                     "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
-                    join("','", array_keys($parameters['query'])) .
+                    join(
+                        "','",
+                        array_map(
+                            fn(Parameter $p) => $p->getName(),
+                            $parameters['query']
+                        )
+                    ) .
                     "']), ARRAY_FILTER_USE_KEY)";
 
                 $body =
