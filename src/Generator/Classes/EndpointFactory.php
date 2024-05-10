@@ -170,33 +170,13 @@ class EndpointFactory
                 }
 
                 $pathArg =
-                    '[' .
-                    join(
-                        ',' . PHP_EOL,
-                        array_map(
-                            fn(Parameter $p) => "\"" .
-                                $p->getName() .
-                                "\" => \$params['" .
-                                $p->getName() .
-                                "']",
-                            $parameters['path']
-                        )
-                    ) .
-                    ']';
+                    "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
+                    join("','", array_keys($parameters['path'])) .
+                    "']), ARRAY_FILTER_USE_KEY)";
                 $queryArg =
-                    '[' .
-                    join(
-                        ',' . PHP_EOL,
-                        array_map(
-                            fn(Parameter $p) => "\"" .
-                                $p->getName() .
-                                "\" => \$params['" .
-                                $p->getName() .
-                                "']",
-                            $parameters['query']
-                        )
-                    ) .
-                    ']';
+                    "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
+                    join("','", array_keys($parameters['query'])) .
+                    "']), ARRAY_FILTER_USE_KEY)";
 
                 $body =
                     'return ' .
