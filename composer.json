@@ -6,7 +6,7 @@
   "require": {
     "battis/data-utilities": "^1.2",
     "battis/openapi-client.base": "@dev",
-    "battis/php-generator": "@dev",
+    "battis/php-generator": "dev-main",
     "cebe/php-openapi": "^1.7",
     "friendsofphp/php-cs-fixer": "^3.49",
     "league/html-to-markdown": "^5.1",
