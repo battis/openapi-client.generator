@@ -282,9 +282,13 @@ class EndpointFactory
                             $type->as(Type::FQN)
                     )
                 );
-                return "array_map(fn(\$a) => new " .
-                    $eltType->as(Type::SHORT) .
-                    "(\$a), {$arg})";
+                if ($eltType->isImportable()) {
+                    return "array_map(fn(\$a) => new " .
+                        $eltType->as(Type::SHORT) .
+                        "(\$a), {$arg})";
+                } else {
+                    return $arg;
+                }
             } else {
                 return 'new ' . $type->as(Type::SHORT) . '(' . $arg . ')';
             }
