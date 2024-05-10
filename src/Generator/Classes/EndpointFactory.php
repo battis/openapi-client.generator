@@ -169,26 +169,28 @@ class EndpointFactory
                     }
                 }
 
-                $pathArg =
-                    "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
-                    join(
-                        "','",
-                        array_map(
-                            fn(Parameter $p) => $p->getName(),
-                            $parameters['path']
-                        )
-                    ) .
-                    "']), ARRAY_FILTER_USE_KEY)";
-                $queryArg =
-                    "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
-                    join(
-                        "','",
-                        array_map(
-                            fn(Parameter $p) => $p->getName(),
-                            $parameters['query']
-                        )
-                    ) .
-                    "']), ARRAY_FILTER_USE_KEY)";
+                $pathArg = empty($parameters['path'])
+                    ? []
+                    : "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
+                        join(
+                            "','",
+                            array_map(
+                                fn(Parameter $p) => $p->getName(),
+                                $parameters['path']
+                            )
+                        ) .
+                        "']), ARRAY_FILTER_USE_KEY)";
+                $queryArg = empty($parameters['query'])
+                    ? []
+                    : "array_filter(\$params, fn(\$key) => in_array(\$key, ['" .
+                        join(
+                            "','",
+                            array_map(
+                                fn(Parameter $p) => $p->getName(),
+                                $parameters['query']
+                            )
+                        ) .
+                        "']), ARRAY_FILTER_USE_KEY)";
 
                 $body =
                     'return ' .
