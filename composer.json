@@ -1,12 +1,10 @@
 {
   "name": "battis/openapi-client.generator",
   "description": "Generate a PHP client for a RESTful API from its OpenAPI description file",
-  "prefer-stable": true,
-  "minimum-stability": "dev",
   "require": {
     "battis/data-utilities": "^1.2",
-    "battis/openapi-client.base": "@dev",
-    "battis/php-generator": "dev-main",
+    "battis/openapi-client.base": "^0.1",
+    "battis/php-generator": "^0.2",
     "cebe/php-openapi": "^1.7",
     "friendsofphp/php-cs-fixer": "^3.49",
     "league/html-to-markdown": "^5.1",
